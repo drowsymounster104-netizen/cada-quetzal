@@ -133,6 +133,13 @@ main{display:flex;flex-direction:column;gap:14px}
 .res{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
 .res div{background:var(--surface-2);border-radius:14px;padding:12px}
 .res b{display:block;font-weight:800;font-size:20px}
+.res b small,.ledger b small{font-size:13px;color:var(--muted);font-weight:700}
+.ledger{display:flex;flex-direction:column;margin-top:10px}
+.ledger div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--muted)}
+.ledger div:last-child{border-bottom:0}
+.ledger b{color:var(--ink);font-weight:700}
+.ledger .tot{color:var(--ink);font-weight:800}
+.ledger .tot b{font-size:20px;font-weight:800}
 
 /* pronóstico */
 .wx{text-align:center}
@@ -258,11 +265,11 @@ nav.tabs button[aria-current="page"]{color:var(--on-paper);background:var(--pape
   <h1>Cada quetzal en su lugar.</h1>
   <p>Una forma sencilla de separar el dinero del negocio y el de la casa. Cierre su caja en un minuto, sepa en qué sobre va cada billete y vea si le alcanzará para sus compras a fin de mes.</p>
   <ul>
-    <li><i style="background:var(--verde)"></i>Sobre verde: compras del negocio</li>
-    <li><i style="background:var(--amarillo)"></i>Sobre amarillo: su sueldo</li>
-    <li><i style="background:var(--naranja)"></i>Sobre naranja: colchón para emergencias</li>
+    <li><i style="background:var(--verde)"></i>Sobre verde: vuelve al negocio</li>
+    <li><i style="background:var(--amarillo)"></i>Sobre amarillo: para usted</li>
+    <li><i style="background:var(--naranja)"></i>Sobre naranja: préstamos y emergencias</li>
   </ul>
-  <p>Ábrala desde su celular y agréguela a la pantalla de inicio para usarla como una app.</p>
+  <p>Los sobres pueden ser de papel o vivir solo en la app, por si anda en movimiento. Ábrala desde su celular y agréguela a la pantalla de inicio.</p>
   <p class="credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>
 </aside>
 <div class="shell">
@@ -295,13 +302,14 @@ var MOTIVOS=[
   {id:'comida',label:'Comida de la casa',sobre:'amarillo'},
   {id:'servicios',label:'Luz, agua o renta',sobre:'amarillo'},
   {id:'estudios',label:'Estudios',sobre:'amarillo'},
+  {id:'cuota',label:'Pago de préstamo',sobre:'naranja'},
   {id:'salud',label:'Salud',sobre:'naranja'},
   {id:'emergencia',label:'Emergencia',sobre:'naranja'},
   {id:'otro',label:'Otro gasto',sobre:'amarillo'}
 ];
-var SOBRE={verde:{name:'Sobre verde',rule:'Para las compras del negocio: proveedores, mercadería o insumos. No se toca para la casa.',cls:'s-v'},
-  amarillo:{name:'Sobre amarillo',rule:'Su sueldo. De aquí sale lo de la casa.',cls:'s-a'},
-  naranja:{name:'Sobre naranja',rule:'Colchón para emergencias de la familia.',cls:'s-n'}};
+var SOBRE={verde:{name:'Sobre verde',rule:'Vuelve al negocio: compras, mercadería, insumos y gastos como gasolina. No se toca para la casa.',cls:'s-v'},
+  amarillo:{name:'Sobre amarillo',rule:'Para usted: lo que se lleva para su casa.',cls:'s-a'},
+  naranja:{name:'Sobre naranja',rule:'Apartado: para pagar préstamos y cubrir emergencias.',cls:'s-n'}};
 var RANGOS=[{n:'Emprendedor Semilla',min:0},{n:'Emprendedor en Marcha',min:3},{n:'Emprendedor Constante',min:9},{n:'Emprendedor Ordenado',min:20},{n:'Emprendedor Maestro',min:45}];
 var RANGO_COLOR=['#4A4A50','#77777E','#A4A4AB','#D3D3D7','#F3F2EF'];
 var PTS_CIERRE=10, PTS_META=30;
@@ -336,9 +344,9 @@ function billsFor(total){
 }
 
 /* ---------- estado ---------- */
-function defaultsSetup(){return {negocio:'Comedor La Esquina',sueldoSemana:700,pctReponer:60,pctColchon:10,metaMes:6000,alarma:'19:00'}}
+function defaultsSetup(){return {negocio:'Comedor La Esquina',pctReponer:50,pctColchon:15,metaMes:6000,metaGanancia:8000,alarma:'19:00'}}
 function demoState(){
-  var s={v:4,demo:true,setup:defaultsSetup(),cierres:[],retiros:[],maxRacha:6};
+  var s={v:5,demo:true,setup:defaultsSetup(),cierres:[],retiros:[],maxRacha:6};
   var plan=[[-9,410],[-8,365],[-6,480],[-5,395],[-4,520],[-3,440],[-2,375],[-1,505]];
   plan.forEach(function(p){var f=add(TODAY,p[0]);var r=repartir(p[1],billsFor(p[1]),s.setup);
     s.cierres.push({fecha:f,total:p[1],verde:r.verde,amarillo:r.amarillo,naranja:r.naranja})});
@@ -354,6 +362,8 @@ function demoState(){
   R(-1,70,'casa','comida','amarillo');
   var f1=forecast(s,{}), f0=forecast(s,{sinDeuda:true});
   s.setup.metaMes=Math.round((f1.monthly+f0.monthly)/2/100)*100;
+  var g9=ventasEntre(s,add(TODAY,-9),TODAY)-comprasEntre(s,add(TODAY,-9),TODAY);
+  s.setup.metaGanancia=Math.max(1000,Math.round(g9/9*30*1.1/100)*100);
   return s;
 }
 function migrate(s){
@@ -370,6 +380,11 @@ function migrate(s){
     s.retiros.forEach(function(r){if(r.tipo==='prestamo'&&!r.pagos)r.pagos=r.devuelto?[{fecha:r.devuelto,monto:r.monto}]:[]});
     s.v=4;
   }
+  if(s.v<5){
+    if(s.setup.metaGanancia==null)s.setup.metaGanancia=(s.setup.sueldoSemana||700)*4;
+    delete s.setup.sueldoSemana;
+    s.v=5;
+  }
   return s;
 }
 function load(){try{var t=localStorage.getItem(KEY);if(t){var s=JSON.parse(t);if(s&&s.setup&&s.cierres)return migrate(s)}}catch(e){}return null}
@@ -380,7 +395,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function closedOn(s,f){return s.cierres.some(function(c){return c.fecha===f})}
 function racha(s){var d=closedOn(s,TODAY)?TODAY:add(TODAY,-1),n=0;while(closedOn(s,d)){n++;d=add(d,-1)}return n}
 function rango(n){var i=0;RANGOS.forEach(function(l,k){if(n>=l.min)i=k});return i}
-function motivo(id){return MOTIVOS.filter(function(m){return m.id===id})[0]||MOTIVOS[5]}
+function motivo(id){return MOTIVOS.filter(function(m){return m.id===id})[0]||MOTIVOS[MOTIVOS.length-1]}
 function pagado(r){return sum((r.pagos||[]).map(function(p){return p.monto}))}
 function resta(r){return Math.max(0,r.monto-pagado(r))}
 function pendientes(s){return s.retiros.filter(function(r){return r.tipo==='prestamo'&&resta(r)>0})}
@@ -406,8 +421,13 @@ function forecast(s,o){
   var status=ratio>=1?'sol':ratio>=0.75?'nube':'lluvia';
   return {monthly:monthly,meta:meta,ratio:ratio,status:status,span:span,bad:bad};
 }
-/* gasto de la casa en una semana: sueldo (amarillo) y préstamos del verde; el colchón no cuenta */
+/* gasto de la casa: su parte (amarillo) y préstamos del verde; el apartado no cuenta */
 function casaEntre(s,a,b){return sum(s.retiros.filter(function(r){return r.fecha>=a&&r.fecha<=b&&(r.tipo==='prestamo'||(r.tipo==='casa'&&r.sobre==='amarillo'))}).map(function(r){return r.monto}))}
+function entre(list,a,b){return list.filter(function(x){return x.fecha>=a&&x.fecha<=b})}
+function ventasEntre(s,a,b){return sum(entre(s.cierres,a,b).map(function(c){return c.total}))}
+function parteEntre(s,a,b){return sum(entre(s.cierres,a,b).map(function(c){return c.amarillo}))}
+function comprasEntre(s,a,b){return sum(entre(s.retiros,a,b).filter(function(r){return r.tipo==='compra'}).map(function(r){return r.monto}))}
+function pct(a,b){return b>0?Math.round(a/b*100):0}
 function metasSemana(s,ini){
   var fin=add(ini,6);
   var cierres=s.cierres.filter(function(c){return c.fecha>=ini&&c.fecha<=fin}).length;
@@ -416,7 +436,7 @@ function metasSemana(s,ini){
   var sinDeuda=!s.retiros.some(function(r){return r.tipo==='prestamo'&&r.fecha<=hasta&&(!r.devuelto||r.devuelto>hasta)});
   var m=[
     {t:'Cierre la caja 5 días',ok:cierres>=5,p:Math.min(cierres,5)+' de 5'},
-    {t:'Quédese dentro de su sueldo',ok:casa<=s.setup.sueldoSemana,p:Q(casa)+' de '+Q(s.setup.sueldoSemana)},
+    {t:'No saque más de su parte',ok:casa<=parteEntre(s,ini,fin),p:Q(casa)+' de '+Q(parteEntre(s,ini,fin))},
     {t:'Sin deudas con el sobre verde',ok:sinDeuda,p:sinDeuda?'Al día':'Debe '+Q(deuda(s))}
   ];
   return {metas:m,cumplidas:m.filter(function(x){return x.ok}).length};
@@ -463,7 +483,7 @@ function debtCard(){
   return '<section class="card debt"><div><span class="label">Préstamo pendiente</span><h3>Le debe '+Q(d)+' al sobre verde</h3><p class="note" style="margin-top:4px">Lo tomó para la casa. Cuando lo reponga en el sobre, toque Devolví y su pronóstico se limpia.</p></div><button class="big-btn go small" id="btn-devolver">Devolví</button></section>';
 }
 function renderHoy(){
-  var closed=closedOn(S,TODAY), r=racha(S), f=forecast(S,{}), ini=lunes(TODAY), ms=metasSemana(S,ini), casa=casaEntre(S,ini,TODAY), sueldo=S.setup.sueldoSemana;
+  var closed=closedOn(S,TODAY), r=racha(S), f=forecast(S,{}), ini=lunes(TODAY), ms=metasSemana(S,ini), casa=casaEntre(S,ini,TODAY), parte=parteEntre(S,ini,TODAY);
   var h='';
   if(S.demo) h+='<div class="demo"><span>Está viendo un negocio de ejemplo.</span><button id="btn-mio">Empezar con el mío</button></div>';
   if(!closed) h+='<div class="bell"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></svg><div>¿Ya puso cada quetzal en su lugar?<small>Recordatorio de cierre a las '+esc(S.setup.alarma)+'</small></div></div>';
@@ -471,32 +491,41 @@ function renderHoy(){
     h+='<section class="card hero"><p class="label" style="color:inherit;opacity:.8">'+fmtDay(TODAY)+'</p><h2>Hora de cerrar la caja</h2><p>Cuente el dinero de hoy y le indicamos en qué sobre va cada billete. Le toma un minuto.</p><button class="big-btn go" id="btn-cerrar">Cerrar caja de hoy</button></section>';
   } else {
     var c=S.cierres.filter(function(x){return x.fecha===TODAY})[0];
-    h+='<section class="card hero"><p class="label" style="color:inherit;opacity:.8">'+fmtDay(TODAY)+', caja cerrada</p><h2>Hoy vendió '+Q(c.total)+'</h2><div class="split3 num"><div class="s-v">Compras<b>'+Q(c.verde)+'</b></div><div class="s-a">Su sueldo<b>'+Q(c.amarillo)+'</b></div><div class="s-n">Colchón<b>'+Q(c.naranja)+'</b></div></div></section>';
+    h+='<section class="card hero"><p class="label" style="color:inherit;opacity:.8">'+fmtDay(TODAY)+', caja cerrada</p><h2>Hoy vendió '+Q(c.total)+'</h2><div class="split3 num"><div class="s-v">Negocio<b>'+Q(c.verde)+'</b></div><div class="s-a">Para usted<b>'+Q(c.amarillo)+'</b></div><div class="s-n">Apartado<b>'+Q(c.naranja)+'</b></div></div></section>';
+    var cmp=comprasEntre(S,TODAY,TODAY), cas=casaEntre(S,TODAY,TODAY), gan=c.total-cmp;
+    h+='<section class="card"><div class="row"><h3>Resultado de hoy</h3><span class="label">Rendimiento</span></div><div class="ledger num">'
+      +'<div><span>Entró</span><b>'+Q(c.total)+'</b></div><div><span>Gastó en el negocio</span><b>-'+Q(cmp)+'</b></div>'
+      +'<div class="tot"><span>Ganancia del día</span><b>'+Q(gan)+' <small>'+pct(gan,c.total)+'%</small></b></div>'
+      +'<div><span>Se llevó a la casa</span><b>'+Q(cas)+'</b></div><div><span>Apartó</span><b>'+Q(c.naranja)+'</b></div></div></section>';
   }
   h+=debtCard();
-  h+='<div class="acts2"><button class="act v" id="btn-compra"><span class="dot s-v"></span>Pagué compras del negocio<small>Sale del sobre verde</small></button><button class="act a" id="btn-casa"><span class="dot s-a"></span>Saqué para la casa<small>Sale de su sueldo</small></button><button class="act wide" id="btn-emerg"><span class="dot s-n"></span><span class="txt">Retiré de emergencia<small>Sale del sobre naranja, su colchón</small></span></button></div>';
+  h+='<div class="acts2"><button class="act v" id="btn-compra"><span class="dot s-v"></span>Pagué compras del negocio<small>Sale del sobre verde</small></button><button class="act a" id="btn-casa"><span class="dot s-a"></span>Saqué para la casa<small>Sale de su parte</small></button><button class="act wide" id="btn-emerg"><span class="dot s-n"></span><span class="txt">Pago de préstamo o emergencia<small>Sale del apartado, sobre naranja</small></span></button></div>';
   h+='<section class="card"><div class="row"><h3>Metas de la semana</h3><span class="label num">'+ms.cumplidas+' de 3</span></div><div class="metas">'+ms.metas.map(function(m){return '<div class="meta'+(m.ok?' ok':'')+'"><span class="tick" aria-hidden="true">'+(m.ok?'✓':'')+'</span><span>'+m.t+'<small class="num">'+m.p+'</small></span></div>'}).join('')+'</div><p class="note">Se renuevan cada lunes. Cada meta cumplida suma '+PTS_META+' puntos.</p></section>';
   h+='<section class="card"><div class="row"><h3>Reto de 7 días</h3><span class="label num">'+Math.min(r,7)+' de 7</span></div><div class="week">';
   for(var i=6;i>=0;i--){var d=add(TODAY,-i);h+='<div class="day'+(closedOn(S,d)?' on':'')+(i===0?' today':'')+'">'+DIAS[parse(d).getDay()]+'<i></i></div>'}
   h+='</div><p class="note">'+(r>=7?'Reto cumplido. Siga con la racha.':r>0?'Lleva '+r+(r===1?' día':' días')+' seguidos cerrando la caja.':'Cierre hoy para empezar su racha.')+'</p></section>';
-  var pct=Math.min(100,casa/Math.max(1,sueldo)*100), over=casa>sueldo;
-  h+='<section class="card"><div class="row"><h3>Lo que sacó para la casa</h3><span class="label">Esta semana</span></div><p class="num" style="margin-top:6px"><b style="font-family:var(--display);font-size:24px;font-weight:600">'+Q(casa)+'</b> de su sueldo de '+Q(sueldo)+'</p><div class="bar'+(over?' over':'')+'"><i style="width:'+pct+'%"></i></div><p class="note'+(over?' bad':'')+'">'+(over?'Se pasó por '+Q(casa-sueldo)+' esta semana.':'Le quedan '+Q(sueldo-casa)+' de su sueldo esta semana.')+'</p></section>';
+  var mes=TODAY.slice(0,8)+'01', gm=ventasEntre(S,mes,TODAY)-comprasEntre(S,mes,TODAY), mg=S.setup.metaGanancia||1;
+  h+='<section class="card"><div class="row"><h3>Meta de ganancia del mes</h3><span class="label num">'+pct(Math.max(0,gm),mg)+'%</span></div><p class="num" style="margin-top:6px"><b style="font-size:24px;font-weight:800">'+Q(gm)+'</b> de '+Q(mg)+'</p><div class="bar"><i style="width:'+Math.min(100,Math.max(0,gm)/mg*100)+'%"></i></div><p class="note">Ganancia: lo que vendió menos lo que pagó en compras del negocio.</p></section>';
+  var bp=Math.min(100,casa/Math.max(1,parte)*100), over=casa>parte;
+  h+='<section class="card"><div class="row"><h3>Lo que sacó para la casa</h3><span class="label">Esta semana</span></div><p class="num" style="margin-top:6px"><b style="font-size:24px;font-weight:800">'+Q(casa)+'</b> de su parte de '+Q(parte)+'</p><div class="bar'+(over?' over':'')+'"><i style="width:'+bp+'%"></i></div><p class="note'+(over?' bad':'')+'">'+(over?'Se pasó por '+Q(casa-parte)+'. Eso salió del dinero del negocio o del apartado.':'Le quedan '+Q(parte-casa)+' de su parte esta semana.')+'</p></section>';
   if(f){h+='<section class="card"><button class="teaser" data-go="pronostico" style="border:0;background:none;padding:0">'+wxSVG(f.status)+'<span><span class="label">Pronóstico de fin de mes</span><b style="display:block;font-family:var(--display);font-size:20px;font-weight:600">'+WX[f.status].t+'</b><span class="note" style="margin:0">'+WX[f.status].s+'</span></span></button></section>'}
   h+='<p class="credit tabs-credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>';
   return h;
 }
 function renderSobres(){
   var b=balances(S), h='';
+  h+='<p class="note" style="margin:0 4px">Sus sobres pueden ser de papel o vivir solo en la app, por si anda en movimiento. Lo importante es que cada quetzal tenga su lugar.</p>';
   ['verde','amarillo','naranja'].forEach(function(k){h+='<section class="sobre '+SOBRE[k].cls+'"><h3>'+SOBRE[k].name+'</h3><p>'+SOBRE[k].rule+'</p><div class="amt num">'+Q(b[k])+'</div></section>'});
   h+=debtCard();
   var from=add(TODAY,-29), cs=S.cierres.filter(function(c){return c.fecha>=from});
   var compras=sum(S.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='compra'}).map(function(r){return r.monto}));
-  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(sum(cs.map(function(c){return c.total})))+'</b></div><div><span class="label">Apartó para compras</span><b>'+Q(sum(cs.map(function(c){return c.verde})))+'</b></div><div><span class="label">Pagó en compras</span><b>'+Q(compras)+'</b></div><div><span class="label">Se pagó de sueldo</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
+  var ven=sum(cs.map(function(c){return c.total})), gan=ven-compras;
+  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(ven)+'</b></div><div><span class="label">Pagó en compras</span><b>'+Q(compras)+'</b></div><div><span class="label">Ganancia</span><b>'+Q(gan)+' <small>'+pct(gan,ven)+'%</small></b></div><div><span class="label">Para usted</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
   var mov=[];
   S.cierres.forEach(function(c){mov.push({f:c.fecha,t:'Cierre de caja',sub:'Repartido en 3 sobres',m:'+'+Q(c.total),k:null})});
   S.retiros.forEach(function(r){
     if(r.tipo==='compra') mov.push({f:r.fecha,t:'Compras del negocio',sub:'Sobre verde',m:'-'+Q(r.monto),k:'verde'});
-    else if(r.tipo==='prestamo'){var rs=resta(r),pg=pagado(r);mov.push({f:r.fecha,t:'Préstamo para la casa',sub:motivo(r.motivo).label+(rs===0?', devuelto completo':pg>0?', faltan '+Q(rs):', pendiente'),m:'-'+Q(r.monto),k:'verde'});(r.pagos||[]).forEach(function(pp){mov.push({f:pp.fecha,t:'Devolución al sobre verde',sub:'Sale de su sueldo',m:'+'+Q(pp.monto),k:'verde'})})}
+    else if(r.tipo==='prestamo'){var rs=resta(r),pg=pagado(r);mov.push({f:r.fecha,t:'Préstamo para la casa',sub:motivo(r.motivo).label+(rs===0?', devuelto completo':pg>0?', faltan '+Q(rs):', pendiente'),m:'-'+Q(r.monto),k:'verde'});(r.pagos||[]).forEach(function(pp){mov.push({f:pp.fecha,t:'Devolución al sobre verde',sub:'Sale de su parte',m:'+'+Q(pp.monto),k:'verde'})})}
     else mov.push({f:r.fecha,t:motivo(r.motivo).label,sub:SOBRE[r.sobre].name,m:'-'+Q(r.monto),k:r.sobre});
   });
   mov.sort(function(a,b){return a.f<b.f?1:a.f>b.f?-1:0});
@@ -537,8 +566,8 @@ function renderPuesto(){
     ['Mes perfecto','4 semanas perfectas.',perfectas>=4],
     ['Palabra cumplida','Devolvió un préstamo al sobre verde.',devolvio],
     ['Verde intacto','Una semana sin tomar prestado del sobre verde.',verdeLimpio],
-    ['Colchón de Q200','Su sobre naranja llegó a Q200.',b.naranja>=200],
-    ['Colchón de Q500','Su sobre naranja llegó a Q500.',b.naranja>=500],
+    ['Apartado de Q200','Su sobre naranja llegó a Q200.',b.naranja>=200],
+    ['Apartado de Q500','Su sobre naranja llegó a Q500.',b.naranja>=500],
     ['15 cierres','Medio mes cerrando la caja.',n>=15],
     ['30 cierres','Un mes completo de cierres.',n>=30],
     ['60 cierres','Dos meses de constancia.',n>=60]
@@ -575,9 +604,9 @@ function renderCierre(){
   } else if(c.step===2){
     var r=c.rep;
     h=head('Cada quetzal en su lugar',2,3)+'<p>Hoy vendió <b class="num">'+Q(c.total)+'</b>. Sepárelo así:</p>';
-    [['verde','Compras del negocio'],['amarillo','Su sueldo'],['naranja','Colchón']].forEach(function(k){
+    [['verde','Vuelve al negocio'],['amarillo','Para usted'],['naranja','Apartado: préstamos y emergencias']].forEach(function(k){
       h+='<section class="place '+SOBRE[k[0]].cls+'"><div class="row"><h3>'+SOBRE[k[0]].name+'</h3><span class="amt num">'+Q(r[k[0]])+'</span></div><p style="font-size:14px">'+k[1]+'</p>'+(r.bills?'<div class="chips">'+chipsHTML(r.bills[k[0]])+'</div>':'')+'</section>'});
-    h+='<p class="note">Su regla: '+S.setup.pctReponer+'% para compras, '+S.setup.pctColchon+'% de colchón y el resto es su sueldo. Si no cuadra exacto con sus billetes, la app lo acomoda al más cercano.</p><button class="big-btn go" id="btn-listo">Ya los puse en su lugar</button>';
+    h+='<p class="note">Su regla: de cada Q100, Q'+S.setup.pctReponer+' vuelven al negocio, Q'+(100-S.setup.pctReponer-S.setup.pctColchon)+' son para usted y Q'+S.setup.pctColchon+' van al apartado. Si no cuadra exacto con sus billetes, la app lo acomoda al más cercano.</p><button class="big-btn go" id="btn-listo">Ya los puse en su lugar</button>';
   } else {
     h=head('',3,3)+'<div class="party"><div class="coins" aria-hidden="true">'+['var(--verde)','var(--amarillo)','var(--naranja)','var(--amarillo)','var(--verde)'].map(function(col,k){return '<span style="left:calc(50% - 19px + '+((k-2)*44)+'px);background:'+col+';animation-delay:'+(k*0.08)+'s"></span>'}).join('')+'</div><h2>'+esc(c.frase)+'</h2><p class="note">Racha: '+c.racha+(c.racha===1?' día':' días')+', +'+PTS_CIERRE+' puntos</p></div>';
     if(c.subio) h+='<section class="up">'+rankSVG(c.rango)+'<p class="label">¡Subió de rango!</p><h3 style="font-size:22px">Ahora es '+RANGOS[c.rango].n+'</h3></section>';
@@ -600,28 +629,28 @@ function renderMov(){
     if(t>b.verde) h+='<div class="warn"><b>El sobre verde tiene '+Q(b.verde)+'</b>Puede anotarlo igual. Si pagó con otro dinero, recuerde reponerlo.</div>';
     h+='<button class="big-btn go" id="m-anotar"'+(t>0?'':' disabled')+'>Anotar compra</button><p class="note" style="text-align:center">El sobre verde tiene '+Q(b.verde)+'.</p>';
   } else if(M.emerg){
-    h=head('Retiré de emergencia',0,0)+'<p>Para una enfermedad o un imprevisto de la familia. Sale del sobre naranja, su colchón, y no toca su sueldo ni el dinero de las compras.</p>'+amountBlock(M);
-    h+='<div class="field"><span>¿Qué pasó?</span><div class="choices">'+MOTIVOS.filter(function(x){return ['salud','emergencia','otro'].indexOf(x.id)>-1}).map(function(x){return '<button class="choice" data-motivo="'+x.id+'" aria-pressed="'+(x.id===M.motivo)+'">'+x.label+'</button>'}).join('')+'</div></div>';
-    if(t>0&&t>b.naranja) h+='<div class="warn"><b>Su colchón tiene '+Q(Math.max(0,b.naranja))+'</b>Si no le alcanza, puede tomar lo que falte como préstamo del sobre verde y devolverlo después.<div class="acts"><button class="ok" data-sobre="verde">Tomarlo como préstamo</button></div></div>';
-    h+='<button class="big-btn go" id="m-anotar"'+(t>0?'':' disabled')+'>Anotar emergencia</button><p class="note" style="text-align:center">Su colchón tiene '+Q(b.naranja)+'.</p>';
+    h=head('Saqué del apartado',0,0)+'<p>Para pagar un préstamo o cubrir una emergencia. Sale del sobre naranja y no toca su parte ni el dinero del negocio.</p>'+amountBlock(M);
+    h+='<div class="field"><span>¿Pago de préstamo o emergencia?</span><div class="choices">'+MOTIVOS.filter(function(x){return ['cuota','salud','emergencia'].indexOf(x.id)>-1}).map(function(x){return '<button class="choice" data-motivo="'+x.id+'" aria-pressed="'+(x.id===M.motivo)+'">'+x.label+'</button>'}).join('')+'</div></div>';
+    if(t>0&&t>b.naranja) h+='<div class="warn"><b>Su apartado tiene '+Q(Math.max(0,b.naranja))+'</b>Si no le alcanza, puede tomar lo que falte como préstamo del sobre verde y devolverlo después.<div class="acts"><button class="ok" data-sobre="verde">Tomarlo como préstamo</button></div></div>';
+    h+='<button class="big-btn go" id="m-anotar"'+(t>0?'':' disabled')+'>Anotar</button><p class="note" style="text-align:center">Su apartado tiene '+Q(b.naranja)+'.</p>';
   } else {
-    var ini=lunes(TODAY), casa=casaEntre(S,ini,TODAY), sueldo=S.setup.sueldoSemana;
+    var ini=lunes(TODAY), casa=casaEntre(S,ini,TODAY), parte=parteEntre(S,ini,TODAY);
     h=head('Saqué para la casa',0,0)+amountBlock(M);
     h+='<div class="field"><span>¿Para qué fue?</span><div class="choices">'+MOTIVOS.filter(function(x){return ['comida','servicios','estudios','otro'].indexOf(x.id)>-1}).map(function(x){return '<button class="choice" data-motivo="'+x.id+'" aria-pressed="'+(x.id===M.motivo)+'">'+x.label+'</button>'}).join('')+'</div></div>';
     h+='<div class="field"><span>¿De dónde lo sacó?</span><div class="seg">'
-      +'<button class="s-a" data-sobre="amarillo" aria-pressed="'+(M.sobre==='amarillo')+'">Mi sueldo</button>'
+      +'<button class="s-a" data-sobre="amarillo" aria-pressed="'+(M.sobre==='amarillo')+'">Mi parte</button>'
       +'<button class="s-v" data-sobre="verde" aria-pressed="'+(M.sobre==='verde')+'">Préstamo del verde</button></div></div>';
     if(M.sobre==='verde') h+='<div class="info"><b>Queda anotado como préstamo del sobre verde</b>Su pronóstico baja hasta que lo reponga. Cuando lo devuelva, toque Devolví en la pantalla Hoy.</div>';
-    else if(t>0&&t>b.amarillo) h+='<div class="warn"><b>Su sueldo tiene '+Q(Math.max(0,b.amarillo))+'</b>Si no le alcanza, puede tomarlo como préstamo del sobre verde y devolverlo después.<div class="acts"><button class="ok" data-sobre="verde">Tomarlo como préstamo</button></div></div>';
-    else if(t>0&&casa+t>sueldo) h+='<div class="warn"><b>Se pasa de su sueldo semanal</b>Con esto lleva '+Q(casa+t)+' de '+Q(sueldo)+' esta semana.</div>';
+    else if(t>0&&t>b.amarillo) h+='<div class="warn"><b>Su parte tiene '+Q(Math.max(0,b.amarillo))+'</b>Si no le alcanza, puede tomarlo como préstamo del sobre verde y devolverlo después.<div class="acts"><button class="ok" data-sobre="verde">Tomarlo como préstamo</button></div></div>';
+    else if(t>0&&casa+t>parte) h+='<div class="warn"><b>Se pasa de su parte de la semana</b>Con esto lleva '+Q(casa+t)+' de '+Q(parte)+'.</div>';
     h+='<button class="big-btn go" id="m-anotar"'+(t>0?'':' disabled')+'>'+(M.sobre==='verde'?'Anotar préstamo':'Anotar')+'</button>';
-    if(M.sobre!=='verde') h+='<p class="note" style="text-align:center">Su sueldo tiene '+Q(b.amarillo)+'.</p>';
+    if(M.sobre!=='verde') h+='<p class="note" style="text-align:center">Su parte tiene '+Q(b.amarillo)+'.</p>';
   }
   openSheet(h,'m');
 }
 function renderDevolver(){
   var p=pendientes(S), h=head('Devolví al sobre verde',0,0);
-  h+='<p>Anote cuánto puso de vuelta en el sobre verde. Puede devolver una parte; lo que falte queda pendiente. Se descuenta de su sobre amarillo.</p>';
+  h+='<p>Anote cuánto puso de vuelta en el sobre verde. Puede devolver solo una parte; lo que falte queda pendiente. Se descuenta de su sobre amarillo.</p>';
   if(!p.length) h+='<p class="note">No tiene préstamos pendientes.</p>';
   p.forEach(function(r){var i=S.retiros.indexOf(r),rs=resta(r),pg=pagado(r);
     h+='<section class="card loan-p"><div class="row"><b class="num">Falta '+Q(rs)+'</b><small>'+fmtDay(r.fecha)+', '+motivo(r.motivo).label+'</small></div>'+(pg>0?'<p class="note" style="margin:0">Prestó '+Q(r.monto)+' y ya devolvió '+Q(pg)+'.</p>':'')
@@ -635,12 +664,14 @@ function pagar(r,amt){amt=Math.min(Math.round(amt),resta(r));if(amt<=0)return 0;
 function renderAjustes(nuevo){
   var s=nuevo?defaultsSetup():S.setup; if(nuevo)s.negocio='';
   var h=head(nuevo?'Su negocio':'Ajustes',0,0);
-  if(nuevo) h+='<p>Conteste cinco datos y empiece con sus sobres vacíos. Los datos se quedan solo en este teléfono.</p>';
+  if(nuevo) h+='<p>Conteste unos datos y empiece con sus sobres vacíos. Los datos se quedan solo en este teléfono.</p>';
   h+='<div class="field"><label for="a-negocio">Nombre del negocio</label><input id="a-negocio" maxlength="40" placeholder="Ej. Tienda Don Julio" value="'+esc(s.negocio)+'"><small>No hace falta poner su nombre completo ni dirección.</small></div>';
-  h+='<div class="field"><label for="a-sueldo">¿Cuánto se va a pagar por semana?</label><input id="a-sueldo" type="number" inputmode="numeric" min="0" value="'+s.sueldoSemana+'"><small>Su sueldo fijo. Lo de la casa sale de aquí.</small></div>';
-  h+='<div class="field"><label for="a-rep">¿Qué parte de cada venta es para las compras del negocio? (%)</label><input id="a-rep" type="number" inputmode="numeric" min="0" max="90" value="'+s.pctReponer+'"></div>';
-  h+='<div class="field"><label for="a-col">¿Qué parte va al colchón de emergencias? (%)</label><input id="a-col" type="number" inputmode="numeric" min="0" max="50" value="'+s.pctColchon+'"></div>';
-  h+='<div class="field"><label for="a-meta">¿Cuánto gasta al mes en compras del negocio?</label><input id="a-meta" type="number" inputmode="numeric" min="0" value="'+s.metaMes+'"><small>Proveedores, mercadería o insumos. Sume todo lo de un mes, aunque compre cada semana o cada quince días.</small></div>';
+  var us=100-s.pctReponer-s.pctColchon;
+  h+='<div class="field"><label for="a-rep">De cada Q100 que entran, ¿cuántos vuelven al negocio?</label><input id="a-rep" type="number" inputmode="numeric" min="0" max="95" value="'+s.pctReponer+'"><small>Para comprar, reponer o pagar gastos del negocio, como gasolina o herramientas.</small></div>';
+  h+='<div class="field"><label for="a-col">¿Cuántos aparta para préstamos y emergencias?</label><input id="a-col" type="number" inputmode="numeric" min="0" max="95" value="'+s.pctColchon+'"><small>Puede empezar con poco, aunque sean Q5.</small></div>';
+  h+='<div class="info" id="a-usted">Para usted quedan <b style="display:inline">Q'+us+'</b> de cada Q100.</div>';
+  h+='<div class="field"><label for="a-meta">¿Cuánto gasta al mes en compras del negocio?</label><input id="a-meta" type="number" inputmode="numeric" min="0" value="'+s.metaMes+'"><small>Sume todo lo de un mes, aunque compre cada día, cada semana o cada quince días.</small></div>';
+  h+='<div class="field"><label for="a-gan">¿Cuánto le gustaría ganar al mes?</label><input id="a-gan" type="number" inputmode="numeric" min="0" value="'+(s.metaGanancia||0)+'"><small>Ganancia: lo que vende menos lo que gasta en el negocio. Es su meta, la puede cambiar cuando quiera.</small></div>';
   h+='<div class="field"><label for="a-alarma">Hora del recordatorio de cierre</label><input id="a-alarma" type="time" value="'+esc(s.alarma)+'"></div>';
   h+='<p class="note bad" id="a-err" hidden></p><button class="big-btn go" id="a-guardar" data-nuevo="'+(nuevo?1:0)+'">'+(nuevo?'Empezar':'Guardar')+'</button>';
   if(!nuevo) h+='<section class="card"><h3>Datos</h3><p class="note">Puede volver al negocio de ejemplo o empezar con su propio negocio desde cero.</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="big-btn plain" style="margin:0;font-size:16px" id="a-demo">Ver el negocio de ejemplo</button><button class="big-btn plain" style="margin:0;font-size:16px" id="a-nuevo">Empezar con mi negocio</button></div></section><section class="card install"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v8M8.5 11.5L12 15l3.5-3.5"/></svg><div><h3>Úsela como una app</h3><p class="note">En el navegador del celular abra el menú y elija Agregar a pantalla de inicio. Funciona aunque se vaya la señal.</p></div></section><p class="credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>';
@@ -662,9 +693,9 @@ document.addEventListener('click',function(e){
   if(id==='a-demo'){S=demoState();save();closeSheet();go('hoy');toast('Negocio de ejemplo cargado');return}
   if(id==='a-guardar'){
     var v=function(x){return document.getElementById(x).value}, nuevo=t.dataset.nuevo==='1';
-    var st={negocio:v('a-negocio').trim()||'Mi negocio',sueldoSemana:Math.max(0,+v('a-sueldo')||0),pctReponer:Math.max(0,+v('a-rep')||0),pctColchon:Math.max(0,+v('a-col')||0),metaMes:Math.max(0,+v('a-meta')||0),alarma:v('a-alarma')||'19:00'};
-    if(st.pctReponer+st.pctColchon>95){var er=document.getElementById('a-err');er.textContent='Compras más colchón no puede pasar de 95%: algo tiene que quedar para su sueldo.';er.hidden=false;return}
-    if(nuevo){S={v:4,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}else S.setup=st;
+    var st={negocio:v('a-negocio').trim()||'Mi negocio',pctReponer:Math.max(0,+v('a-rep')||0),pctColchon:Math.max(0,+v('a-col')||0),metaMes:Math.max(0,+v('a-meta')||0),metaGanancia:Math.max(0,+v('a-gan')||0),alarma:v('a-alarma')||'19:00'};
+    if(st.pctReponer+st.pctColchon>95){var er=document.getElementById('a-err');er.textContent='Lo del negocio más lo apartado no puede pasar de Q95: algo tiene que quedar para usted.';er.hidden=false;return}
+    if(nuevo){S={v:5,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}else S.setup=st;
     save();closeSheet();go('hoy');toast(nuevo?'Listo. Esta noche hace su primer cierre.':'Ajustes guardados');return;
   }
   /* cierre */
@@ -686,7 +717,7 @@ document.addEventListener('click',function(e){
   /* compras y casa */
   if(id==='btn-compra'){mov={kind:'compra',counts:{},typed:'',typing:false};renderMov();return}
   if(id==='btn-casa'){mov={kind:'casa',counts:{},typed:'',typing:false,motivo:'comida',sobre:'amarillo'};renderMov();return}
-  if(id==='btn-emerg'){mov={kind:'casa',emerg:true,counts:{},typed:'',typing:false,motivo:'salud',sobre:'naranja'};renderMov();return}
+  if(id==='btn-emerg'){mov={kind:'casa',emerg:true,counts:{},typed:'',typing:false,motivo:'cuota',sobre:'naranja'};renderMov();return}
   if(t.dataset.mden){mov.counts[t.dataset.mden]=(mov.counts[t.dataset.mden]||0)+1;renderMov();return}
   if(t.dataset.mdenMinus){var d2=t.dataset.mdenMinus;mov.counts[d2]=Math.max(0,(mov.counts[d2]||0)-1);renderMov();return}
   if(id==='m-to-typed'){mov.typing=true;mov.counts={};renderMov();var j=document.getElementById('m-typed');if(j)j.focus();return}
@@ -696,7 +727,7 @@ document.addEventListener('click',function(e){
   if(id==='m-anotar'){var amt=Math.round(movTotal(mov));if(amt<=0)return;var msg;
     if(mov.kind==='compra'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'compra',motivo:null,sobre:'verde'});save();closeSheet();msg='Compra anotada. Al sobre verde le quedan '+Q(balances(S).verde)+'.'}
     else if(mov.sobre==='verde'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'prestamo',motivo:mov.motivo,sobre:'verde',devuelto:null,pagos:[]});save();closeSheet();msg='Préstamo anotado. Cuando lo reponga, toque Devolví.'}
-    else {var so=mov.sobre;S.retiros.push({fecha:TODAY,monto:amt,tipo:'casa',motivo:mov.motivo,sobre:so});save();closeSheet();msg=so==='naranja'?'Anotado. A su colchón le quedan '+Q(balances(S).naranja)+'.':'Anotado. A su sueldo le quedan '+Q(balances(S)[so])+'.'}
+    else {var so=mov.sobre;S.retiros.push({fecha:TODAY,monto:amt,tipo:'casa',motivo:mov.motivo,sobre:so});save();closeSheet();msg=so==='naranja'?'Anotado. A su apartado le quedan '+Q(balances(S).naranja)+'.':'Anotado. A su parte le quedan '+Q(balances(S)[so])+'.'}
     toast(msg);return}
   /* devolver */
   if(id==='btn-devolver'){renderDevolver();return}
@@ -708,6 +739,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('input',function(e){
   var t=e.target;
+  if(t.id==='a-rep'||t.id==='a-col'){var u=100-(+document.getElementById('a-rep').value||0)-(+document.getElementById('a-col').value||0);document.getElementById('a-usted').innerHTML='Para usted quedan <b style="display:inline">Q'+u+'</b> de cada Q100.';return}
   if(t.id==='typed'){cierre.typed=t.value;var tot=+t.value||0;document.getElementById('cierre-total').textContent=Q(tot);document.getElementById('btn-siguiente').disabled=!(tot>0);return}
   if(t.id==='m-typed'){mov.typed=t.value;var pos=t.selectionStart;renderMov();var n=document.getElementById('m-typed');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}return}
 });
