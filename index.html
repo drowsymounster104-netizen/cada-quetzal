@@ -448,7 +448,11 @@ function migrate(s){
   return s;
 }
 function load(){try{var t=localStorage.getItem(KEY);if(t){var s=JSON.parse(t);if(s&&s.setup&&s.cierres)return migrate(s)}}catch(e){}return null}
-var S=load()||demoState();
+function emptyState(){var st=defaultsSetup();st.negocio='Mi negocio';st.cuotaMes=0;st.ahorroDia=0;st.metaUsted=0;return {v:6,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}
+var S=load();
+if(!S||S.demo){if(S&&S.demo){try{localStorage.removeItem('cada-quetzal-intro')}catch(e){}}S=emptyState()}
+/* ejemplo solo para presentaciones: abrir con #ejemplo */
+if(location.hash==='#ejemplo')S=demoState();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 
 /* ---------- cálculos ---------- */
@@ -543,9 +547,8 @@ function chipsHTML(list){if(!list||!list.length)return '<span class="note">Sin b
 var HELP={
   sobres:['Sus tres sobres','Su dinero se reparte en tres sobres. El verde vuelve al negocio para comprar mercadería. El amarillo es para usted y su casa. El naranja es un apartado para pagar su préstamo y para emergencias.'],
   pron:['El pronóstico','La app compara lo que junta en el sobre verde con lo que gasta en el negocio: mercadería, proveedores y sueldos. Sol: le alcanza. Nube: va justo. Lluvia: si sigue así, no le va a alcanzar.'],
-  mes:['Lo que le queda este mes','Es lo que vendió en el mes, menos los gastos del negocio, el préstamo y el ahorro. Eso es lo que de verdad le queda a usted.'],
-  casa:['Lo que sacó para la casa','Su parte de la semana es lo que cayó en el sobre amarillo. Si saca más que eso, está usando dinero del negocio.'],
-  hoyres:['Resultado de hoy','Lo que entró hoy menos lo que gastó en el negocio. Esa es la ganancia del día.'],
+  mes:['Su parte este mes','Es la suma de lo que ha caído en su sobre amarillo este mes. Ese dinero sí es suyo: lo del negocio y lo apartado ya quedaron separados.'],
+  hoyres:['Así se repartió hoy','Cuánto de lo que vendió hoy fue a cada sobre, y cuánto sacó hoy para gastos del negocio o para la casa.'],
   reto:['Reto de 7 días','Cierre la caja 7 días seguidos. Cada cuadrito marcado es un día que separó bien su dinero.'],
   metas:['Metas de la semana','Cada semana hay tres metas. Si las cumple, suma puntos para el premio del mes. Se renuevan cada lunes.'],
   rango:['Su rango','Cada vez que cierra la caja suma un cierre. Con más cierres sube de rango, de Emprendedor Semilla hasta Emprendedor Maestro.'],
@@ -597,20 +600,17 @@ function renderSobres(){
   h+='<div class="row c" style="padding:0 4px"><h2 style="font-size:26px">Mis sobres</h2>'+helpBtn('sobres')+'</div>';
   ['verde','amarillo','naranja'].forEach(function(k){h+='<section class="sobre '+SOBRE[k].cls+'"><h3>'+SOBRE[k].name+'</h3><p>'+SOBRE[k].rule+'</p><div class="amt num">'+Q(b[k])+'</div></section>'});
   h+=debtCard();
-  if(closedOn(S,TODAY)){var c=S.cierres.filter(function(x){return x.fecha===TODAY})[0],cmp=comprasEntre(S,TODAY,TODAY),cas=casaEntre(S,TODAY,TODAY),gan=c.total-cmp;
-    h+='<section class="card"><div class="row c"><h3>Resultado de hoy</h3>'+helpBtn('hoyres')+'</div><div class="ledger num">'
-      +'<div><span>Entró</span><b>'+Q(c.total)+'</b></div><div><span>Gastó en el negocio</span><b>-'+Q(cmp)+'</b></div>'
-      +'<div class="tot"><span>Ganancia del día</span><b>'+Q(gan)+'</b></div>'
-      +'<div><span>Se llevó a la casa</span><b>'+Q(cas)+'</b></div><div><span>Apartó</span><b>'+Q(c.naranja)+'</b></div></div></section>'}
-  var mes=TODAY.slice(0,8)+'01', cm=entre(S.cierres,mes,TODAY), gn=ventasEntre(S,mes,TODAY)-comprasEntre(S,mes,TODAY), ap=sum(cm.map(function(c){return c.naranja})), um=gn-ap, mu=S.setup.metaUsted||0;
-  h+='<section class="card"><div class="row c"><h3>Lo que le queda este mes</h3>'+helpBtn('mes')+'</div><p class="num" style="margin-top:6px"><b style="font-size:26px;font-weight:800">'+Q(um)+'</b>'+(mu?' de su meta de '+Q(mu):'')+'</p>'+(mu?'<div class="bar"><i style="width:'+Math.min(100,Math.max(0,um)/mu*100)+'%"></i></div>':'')+'<div class="ledger num"><div><span>Ganancia del negocio</span><b>'+Q(gn)+'</b></div><div><span>Préstamo y ahorro</span><b>-'+Q(ap)+'</b></div><div class="tot"><span>Para usted</span><b>'+Q(um)+'</b></div></div></section>';
-  var ini=lunes(TODAY), casa=casaEntre(S,ini,TODAY), parte=parteEntre(S,ini,TODAY), bp=Math.min(100,casa/Math.max(1,parte)*100), over=casa>parte;
-  h+='<section class="card"><div class="row c"><h3>Lo que sacó para la casa</h3>'+helpBtn('casa')+'</div><p class="num" style="margin-top:6px"><b style="font-size:24px;font-weight:800">'+Q(casa)+'</b> de su parte de '+Q(parte)+' esta semana</p><div class="bar'+(over?' over':'')+'"><i style="width:'+bp+'%"></i></div><p class="note'+(over?' bad':'')+'">'+(over?'Se pasó por '+Q(casa-parte)+'. Eso salió del dinero del negocio o del apartado.':'Le quedan '+Q(parte-casa)+' de su parte esta semana.')+'</p></section>';
+  if(closedOn(S,TODAY)){var c=S.cierres.filter(function(x){return x.fecha===TODAY})[0],cmp=comprasEntre(S,TODAY,TODAY),cas=casaEntre(S,TODAY,TODAY);
+    h+='<section class="card"><div class="row c"><h3>Así se repartió hoy</h3>'+helpBtn('hoyres')+'</div><p class="note" style="margin-top:4px">Vendió '+Q(c.total)+'</p><div class="ledger num">'
+      +'<div><span><span class="dot s-v"></span>Al negocio</span><b>'+Q(c.verde)+'</b></div><div><span><span class="dot s-a"></span>Para usted</span><b>'+Q(c.amarillo)+'</b></div><div><span><span class="dot s-n"></span>Al apartado</span><b>'+Q(c.naranja)+'</b></div>'
+      +'<div><span>Pagó hoy en gastos del negocio</span><b>'+Q(cmp)+'</b></div><div><span>Se llevó hoy a la casa</span><b>'+Q(cas)+'</b></div></div></section>'}
+  var mes=TODAY.slice(0,8)+'01', pm=parteEntre(S,mes,TODAY), cm=casaEntre(S,mes,TODAY), mu=S.setup.metaUsted||0;
+  h+='<section class="card"><div class="row c"><h3>Su parte este mes</h3>'+helpBtn('mes')+'</div><p class="num" style="margin-top:6px"><b style="font-size:26px;font-weight:800">'+Q(pm)+'</b>'+(mu?' de su meta de '+Q(mu):'')+'</p>'+(mu?'<div class="bar"><i style="width:'+Math.min(100,pm/mu*100)+'%"></i></div>':'')+'<p class="note">Es lo que ha caído en su sobre amarillo este mes. Ya se llevó '+Q(cm)+' a la casa.</p></section>';
   h+='<button class="big-btn plain" data-go="pronostico" style="margin:0">Ver el pronóstico de fin de mes</button>';
   var from=add(TODAY,-29), cs=S.cierres.filter(function(c){return c.fecha>=from});
   var compras=sum(S.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='compra'}).map(function(r){return r.monto}));
-  var ven=sum(cs.map(function(c){return c.total})), gan=ven-compras;
-  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(ven)+'</b></div><div><span class="label">Gastos del negocio</span><b>'+Q(compras)+'</b></div><div><span class="label">Ganancia</span><b>'+Q(gan)+' <small>'+pct(gan,ven)+'%</small></b></div><div><span class="label">Para usted</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
+  var ven=sum(cs.map(function(c){return c.total}));
+  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(ven)+'</b></div><div><span class="label">Gastos del negocio</span><b>'+Q(compras)+'</b></div><div><span class="label">Su parte</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div><div><span class="label">Apartó</span><b>'+Q(sum(cs.map(function(c){return c.naranja})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
   var mov=[];
   S.cierres.forEach(function(c){mov.push({f:c.fecha,t:'Cierre de caja',sub:'Repartido en 3 sobres',m:'+'+Q(c.total),k:null})});
   S.retiros.forEach(function(r){
@@ -774,8 +774,8 @@ var INTRO=[
 function renderIntro(){
   var last=intro===INTRO.length-1;
   var h=head('',intro+1,INTRO.length)+'<div class="intro">'+INTRO[intro]+'</div>';
-  h+=last?'<button class="big-btn go" id="intro-mio">Empezar con mi negocio</button><button class="big-btn plain" id="intro-fin" style="margin-top:0">Ver un ejemplo primero</button>'
-    :'<button class="big-btn go" id="intro-next">Siguiente</button><button class="skip" id="intro-fin">Saltar</button>';
+  h+=last?'<button class="big-btn go" id="intro-mio">Empezar</button>'
+    :'<button class="big-btn go" id="intro-next">Siguiente</button><button class="skip" id="intro-mio">Saltar</button>';
   openSheet(h,'i'+intro);
 }
 function introVisto(){try{localStorage.setItem(INTRO_KEY,'1')}catch(e){}}
@@ -792,13 +792,13 @@ function renderAjustes(nuevo){
   h+='<div class="info n" id="a-usted">'+apartadoTxt(s.cuotaMes||0,s.ahorroDia||0)+'</div>';
   h+='<details class="more"><summary>Más opciones</summary>';
   h+='<div class="field"><label for="a-ahorro">¿Cuánto quiere ahorrar cada día?</label><input id="a-ahorro" type="number" inputmode="numeric" min="0" value="'+(s.ahorroDia||0)+'"><small>Va al sobre naranja. Puede empezar con poco, aunque sean Q5.</small></div>';
-  h+='<div class="field"><label for="a-meta-u">¿Cuánto le gustaría que le quede para usted al mes?</label><input id="a-meta-u" type="number" inputmode="numeric" min="0" value="'+(s.metaUsted||0)+'"><small>Después de los gastos del negocio, el préstamo y el ahorro. Ponga 0 si no quiere meta.</small></div>';
+  h+='<div class="field"><label for="a-meta-u">¿Cuánto le gustaría que le quede para usted al mes?</label><input id="a-meta-u" type="number" inputmode="numeric" min="0" value="'+(s.metaUsted||0)+'"><small>Se compara con lo que cae en su sobre amarillo. Ponga 0 si no quiere meta.</small></div>';
   h+='<div class="field"><label for="a-alarma">Hora del recordatorio de cierre</label><input id="a-alarma" type="time" value="'+esc(s.alarma)+'"></div></details>';
   h+='<p class="note bad" id="a-err" hidden></p><button class="big-btn go" id="a-guardar" data-nuevo="'+(nuevo?1:0)+'">'+(nuevo?'Empezar':'Guardar')+'</button>';
   if(!nuevo){
     h+='<section class="card"><h3>Fondo de la pantalla</h3><div class="seg" style="margin-top:12px"><button data-tema="light" aria-pressed="'+(tema()==='light')+'" style="background:#FFFFFF;color:#18181B;border-color:'+(tema()==='light'?'var(--ink)':'#E3E1DA')+'">Claro</button><button data-tema="dark" aria-pressed="'+(tema()==='dark')+'" style="background:#17171A;color:#F3F2EF;border-color:'+(tema()==='dark'?'var(--ink)':'#2B2B30')+'">Oscuro</button></div></section>';
     h+='<button class="big-btn plain" id="a-intro" style="margin:0">Ver cómo funciona</button>';
-    h+='<section class="card"><h3>Datos</h3><p class="note">Puede volver al negocio de ejemplo o empezar con su propio negocio desde cero.</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="big-btn plain" style="margin:0;font-size:16px" id="a-demo">Ver el negocio de ejemplo</button><button class="big-btn plain" style="margin:0;font-size:16px" id="a-nuevo">Empezar con mi negocio</button></div></section><section class="card install"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v8M8.5 11.5L12 15l3.5-3.5"/></svg><div><h3>Úsela como una app</h3><p class="note">En el navegador del celular abra el menú y elija Agregar a pantalla de inicio. Funciona aunque se vaya la señal.</p></div></section>';
+    h+='<section class="card"><h3>Empezar de nuevo</h3><p class="note">Borra lo anotado y empieza con sus sobres vacíos.</p><button class="big-btn plain" style="margin:12px 0 0;font-size:16px" id="a-nuevo">Empezar de nuevo</button></section><section class="card install"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v8M8.5 11.5L12 15l3.5-3.5"/></svg><div><h3>Úsela como una app</h3><p class="note">En el navegador del celular abra el menú y elija Agregar a pantalla de inicio. Funciona aunque se vaya la señal.</p></div></section>';
   }
   openSheet(h,'a');
 }
@@ -816,7 +816,6 @@ document.addEventListener('click',function(e){
   if(t.dataset.tema){setTema(t.dataset.tema);renderAjustes(false);return}
   if(t.dataset.rep){document.getElementById('a-rep').value=t.dataset.rep;document.querySelectorAll('[data-rep]').forEach(function(x){x.setAttribute('aria-pressed',x===t)});return}
   if(t.id==='intro-next'){intro++;renderIntro();return}
-  if(t.id==='intro-fin'){introVisto();closeSheet();return}
   if(t.id==='intro-mio'){introVisto();renderAjustes(true);return}
   if(t.id==='a-intro'){intro=0;renderIntro();return}
   if(t.id==='btn-saque'){renderSaque();return}
@@ -825,7 +824,6 @@ document.addEventListener('click',function(e){
   var id=t.id;
   if(id==='btn-ajustes'){renderAjustes(false);return}
   if(id==='btn-mio'||id==='a-nuevo'){renderAjustes(true);return}
-  if(id==='a-demo'){S=demoState();save();closeSheet();go('hoy');toast('Negocio de ejemplo cargado');return}
   if(id==='a-guardar'){
     var v=function(x){return document.getElementById(x).value}, nuevo=t.dataset.nuevo==='1';
     var st={negocio:v('a-negocio').trim()||'Mi negocio',pctReponer:Math.max(0,+v('a-rep')||0),cuotaMes:Math.max(0,+v('a-cuota')||0),ahorroDia:Math.max(0,+v('a-ahorro')||0),metaUsted:Math.max(0,+v('a-meta-u')||0),alarma:v('a-alarma')||'19:00'};
