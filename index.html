@@ -329,8 +329,9 @@ function lunes(s){var d=parse(s).getDay();return add(s,-((d+6)%7))}
 function expand(counts){var a=[];DEN.forEach(function(d){for(var i=0;i<(counts[d]||0);i++)a.push(d)});return a}
 function group(list){var c={};list.forEach(function(d){c[d]=(c[d]||0)+1});return DEN.filter(function(d){return c[d]}).map(function(d){return {d:d,n:c[d]}})}
 function sum(a){return a.reduce(function(s,x){return s+x},0)}
+function apartadoDia(setup){return Math.round((setup.cuotaMes||0)/30+(setup.ahorroDia||0))}
 function repartir(total,counts,setup){
-  var tV=Math.round(total*setup.pctReponer/100), tN=Math.round(total*setup.pctColchon/100);
+  var tV=Math.round(total*setup.pctReponer/100), tN=Math.min(apartadoDia(setup),Math.max(0,total-tV));
   var pool=expand(counts||{});
   if(!pool.length) return {verde:tV,naranja:tN,amarillo:total-tV-tN,bills:null};
   function take(target){var got=[],rem=target;for(var i=0;i<pool.length;){if(pool[i]<=rem){rem-=pool[i];got.push(pool.splice(i,1)[0])}else i++}return got}
@@ -344,15 +345,16 @@ function billsFor(total){
 }
 
 /* ---------- estado ---------- */
-function defaultsSetup(){return {negocio:'Comedor La Esquina',pctReponer:50,pctColchon:15,metaMes:6000,metaGanancia:8000,alarma:'19:00'}}
+function defaultsSetup(){return {negocio:'Comedor La Esquina',pctReponer:50,cuotaMes:1500,ahorroDia:10,metaUsted:4000,alarma:'19:00'}}
 function demoState(){
-  var s={v:5,demo:true,setup:defaultsSetup(),cierres:[],retiros:[],maxRacha:6};
+  var s={v:6,demo:true,setup:defaultsSetup(),cierres:[],retiros:[],maxRacha:6};
   var plan=[[-9,410],[-8,365],[-6,480],[-5,395],[-4,520],[-3,440],[-2,375],[-1,505]];
   plan.forEach(function(p){var f=add(TODAY,p[0]);var r=repartir(p[1],billsFor(p[1]),s.setup);
     s.cierres.push({fecha:f,total:p[1],verde:r.verde,amarillo:r.amarillo,naranja:r.naranja})});
   var R=function(d,m,tipo,mot,sobre,dev){var o={fecha:add(TODAY,d),monto:m,tipo:tipo,motivo:mot||null,sobre:sobre};if(tipo==='prestamo'){o.devuelto=dev==null?null:add(TODAY,dev);o.pagos=dev==null?[]:[{fecha:add(TODAY,dev),monto:m}]}s.retiros.push(o)};
   R(-8,60,'casa','comida','amarillo');
   R(-6,600,'compra',null,'verde');
+  R(-4,700,'compra',null,'verde');
   R(-5,150,'casa','servicios','amarillo');
   R(-4,300,'prestamo','otro','verde',-3);
   R(-3,80,'casa','salud','naranja');
@@ -360,10 +362,8 @@ function demoState(){
   R(-2,250,'prestamo','comida','verde',null);
   R(-1,500,'compra',null,'verde');
   R(-1,70,'casa','comida','amarillo');
-  var f1=forecast(s,{}), f0=forecast(s,{sinDeuda:true});
-  s.setup.metaMes=Math.round((f1.monthly+f0.monthly)/2/100)*100;
-  var g9=ventasEntre(s,add(TODAY,-9),TODAY)-comprasEntre(s,add(TODAY,-9),TODAY);
-  s.setup.metaGanancia=Math.max(1000,Math.round(g9/9*30*1.1/100)*100);
+  var a=add(TODAY,-9), u9=ventasEntre(s,a,TODAY)-comprasEntre(s,a,TODAY)-sum(entre(s.cierres,a,TODAY).map(function(c){return c.naranja}));
+  s.setup.metaUsted=Math.max(500,Math.round(u9/9*30*1.15/100)*100);
   return s;
 }
 function migrate(s){
@@ -384,6 +384,14 @@ function migrate(s){
     if(s.setup.metaGanancia==null)s.setup.metaGanancia=(s.setup.sueldoSemana||700)*4;
     delete s.setup.sueldoSemana;
     s.v=5;
+  }
+  if(s.v<6){
+    var st=s.setup, n=s.cierres.length, prom=n?sum(s.cierres.map(function(c){return c.total}))/n:0;
+    if(st.ahorroDia==null) st.ahorroDia=Math.round(prom*(st.pctColchon||0)/100);
+    if(st.cuotaMes==null) st.cuotaMes=0;
+    if(st.metaUsted==null) st.metaUsted=st.metaGanancia||3000;
+    delete st.pctColchon; delete st.metaMes; delete st.metaGanancia;
+    s.v=6;
   }
   return s;
 }
@@ -416,10 +424,15 @@ function forecast(s,o){
   var span=Math.max(1,diff(first,last)+1);
   var verdeIn=sum(cs.map(function(c){return c.verde}));
   var bad=sum(s.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='prestamo'}).map(resta));
-  var perDay=(verdeIn-(o.sinDeuda?0:bad))/span;
-  var monthly=Math.max(0,perDay*30), meta=s.setup.metaMes||1, ratio=monthly/meta;
-  var status=ratio>=1?'sol':ratio>=0.75?'nube':'lluvia';
-  return {monthly:monthly,meta:meta,ratio:ratio,status:status,span:span,bad:bad};
+  var monthly=Math.max(0,(verdeIn-(o.sinDeuda?0:bad))/span*30);
+  /* compras estimadas con lo anotado en los últimos 30 días */
+  var cFrom=add(TODAY,-29), compras=s.retiros.filter(function(r){return r.tipo==='compra'&&r.fecha>=cFrom});
+  if(!compras.length) return {sinCompras:true,monthly:monthly,span:span,bad:bad};
+  var cFirst=[first].concat(compras.map(function(r){return r.fecha})).sort()[0];
+  var cSpan=Math.max(7,diff(cFirst<cFrom?cFrom:cFirst,TODAY)+1);
+  var meta=Math.max(1,sum(compras.map(function(r){return r.monto}))/cSpan*30), ratio=monthly/meta;
+  var status=ratio>=1?'sol':ratio>=0.85?'nube':'lluvia';
+  return {monthly:monthly,meta:meta,ratio:ratio,status:status,span:span,bad:bad,cdias:cSpan};
 }
 /* gasto de la casa: su parte (amarillo) y préstamos del verde; el apartado no cuenta */
 function casaEntre(s,a,b){return sum(s.retiros.filter(function(r){return r.fecha>=a&&r.fecha<=b&&(r.tipo==='prestamo'||(r.tipo==='casa'&&r.sobre==='amarillo'))}).map(function(r){return r.monto}))}
@@ -504,11 +517,11 @@ function renderHoy(){
   h+='<section class="card"><div class="row"><h3>Reto de 7 días</h3><span class="label num">'+Math.min(r,7)+' de 7</span></div><div class="week">';
   for(var i=6;i>=0;i--){var d=add(TODAY,-i);h+='<div class="day'+(closedOn(S,d)?' on':'')+(i===0?' today':'')+'">'+DIAS[parse(d).getDay()]+'<i></i></div>'}
   h+='</div><p class="note">'+(r>=7?'Reto cumplido. Siga con la racha.':r>0?'Lleva '+r+(r===1?' día':' días')+' seguidos cerrando la caja.':'Cierre hoy para empezar su racha.')+'</p></section>';
-  var mes=TODAY.slice(0,8)+'01', gm=ventasEntre(S,mes,TODAY)-comprasEntre(S,mes,TODAY), mg=S.setup.metaGanancia||1;
-  h+='<section class="card"><div class="row"><h3>Meta de ganancia del mes</h3><span class="label num">'+pct(Math.max(0,gm),mg)+'%</span></div><p class="num" style="margin-top:6px"><b style="font-size:24px;font-weight:800">'+Q(gm)+'</b> de '+Q(mg)+'</p><div class="bar"><i style="width:'+Math.min(100,Math.max(0,gm)/mg*100)+'%"></i></div><p class="note">Ganancia: lo que vendió menos lo que pagó en compras del negocio.</p></section>';
+  var mes=TODAY.slice(0,8)+'01', cm=entre(S.cierres,mes,TODAY), gn=ventasEntre(S,mes,TODAY)-comprasEntre(S,mes,TODAY), ap=sum(cm.map(function(c){return c.naranja})), um=gn-ap, mu=S.setup.metaUsted||1;
+  h+='<section class="card"><div class="row"><h3>Lo que le queda este mes</h3><span class="label num">'+pct(Math.max(0,um),mu)+'% de su meta</span></div><p class="num" style="margin-top:6px"><b style="font-size:24px;font-weight:800">'+Q(um)+'</b> de '+Q(mu)+'</p><div class="bar"><i style="width:'+Math.min(100,Math.max(0,um)/mu*100)+'%"></i></div><div class="ledger num"><div><span>Ganancia del negocio</span><b>'+Q(gn)+'</b></div><div><span>Préstamo y ahorro</span><b>-'+Q(ap)+'</b></div><div class="tot"><span>Para usted</span><b>'+Q(um)+'</b></div></div></section>';
   var bp=Math.min(100,casa/Math.max(1,parte)*100), over=casa>parte;
   h+='<section class="card"><div class="row"><h3>Lo que sacó para la casa</h3><span class="label">Esta semana</span></div><p class="num" style="margin-top:6px"><b style="font-size:24px;font-weight:800">'+Q(casa)+'</b> de su parte de '+Q(parte)+'</p><div class="bar'+(over?' over':'')+'"><i style="width:'+bp+'%"></i></div><p class="note'+(over?' bad':'')+'">'+(over?'Se pasó por '+Q(casa-parte)+'. Eso salió del dinero del negocio o del apartado.':'Le quedan '+Q(parte-casa)+' de su parte esta semana.')+'</p></section>';
-  if(f){h+='<section class="card"><button class="teaser" data-go="pronostico" style="border:0;background:none;padding:0">'+wxSVG(f.status)+'<span><span class="label">Pronóstico de fin de mes</span><b style="display:block;font-family:var(--display);font-size:20px;font-weight:600">'+WX[f.status].t+'</b><span class="note" style="margin:0">'+WX[f.status].s+'</span></span></button></section>'}
+  if(f&&!f.sinCompras){h+='<section class="card"><button class="teaser" data-go="pronostico" style="border:0;background:none;padding:0">'+wxSVG(f.status)+'<span><span class="label">Pronóstico de fin de mes</span><b style="display:block;font-family:var(--display);font-size:20px;font-weight:600">'+WX[f.status].t+'</b><span class="note" style="margin:0">'+WX[f.status].s+'</span></span></button></section>'}
   h+='<p class="credit tabs-credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>';
   return h;
 }
@@ -536,10 +549,11 @@ function lane(label,val,max,color){return '<div class="lane num"><span>'+label+'
 function renderPronostico(){
   var f=forecast(S,{});
   if(!f) return '<section class="card"><h3>Todavía no hay pronóstico</h3><p class="note">Cierre la caja unos días y aquí verá si le alcanza para sus compras a fin de mes.</p></section>';
+  if(f.sinCompras) return '<section class="card"><h3>Falta un dato</h3><p class="note">Anote sus compras del negocio con el botón Pagué compras. Con unos días de datos, la app calcula sola cuánto gasta al mes y si le va a alcanzar.</p></section>';
   var dim=new Date(parse(TODAY).getFullYear(),parse(TODAY).getMonth()+1,0).getDate(), left=dim-parse(TODAY).getDate();
   var max=Math.max(f.monthly,f.meta);
-  var h='<section class="card wx">'+wxSVG(f.status)+'<p class="label">Pronóstico para sus compras</p><h2>'+WX[f.status].t+'</h2><p class="sent">Al ritmo de los últimos '+f.span+' días, en un mes juntará <b class="num">'+Q(f.monthly)+'</b> en el sobre verde. Para sus compras necesita <b class="num">'+Q(f.meta)+'</b>.</p>';
-  h+='<div class="cmp">'+lane('Va a juntar',f.monthly,max,'var(--paper)')+lane('Necesita',f.meta,max,'var(--faint)')+'</div>';
+  var h='<section class="card wx">'+wxSVG(f.status)+'<p class="label">Pronóstico para sus compras</p><h2>'+WX[f.status].t+'</h2><p class="sent">Al ritmo de los últimos '+f.span+' días, en un mes juntará <b class="num">'+Q(f.monthly)+'</b> en el sobre verde. Según lo que ha comprado, al mes gasta unos <b class="num">'+Q(f.meta)+'</b> en el negocio.</p>';
+  h+='<div class="cmp">'+lane('Va a juntar',f.monthly,max,'var(--paper)')+lane('Gasta',f.meta,max,'var(--faint)')+'</div>';
   if(f.bad>0) h+='<div class="debt-inline"><p class="note bad" style="margin:0">Lo que baja su pronóstico: debe '+Q(f.bad)+' al sobre verde.</p><button class="big-btn go small" id="btn-devolver">Devolví</button></div>';
   h+='<p class="note" style="text-align:left">Faltan '+left+' días para fin de mes. Al empezar otro mes no se borra nada.</p></section>';
   h+='<section class="card"><h3>Cómo leer el pronóstico</h3><div class="legend">'
@@ -606,7 +620,7 @@ function renderCierre(){
     h=head('Cada quetzal en su lugar',2,3)+'<p>Hoy vendió <b class="num">'+Q(c.total)+'</b>. Sepárelo así:</p>';
     [['verde','Vuelve al negocio'],['amarillo','Para usted'],['naranja','Apartado: préstamos y emergencias']].forEach(function(k){
       h+='<section class="place '+SOBRE[k[0]].cls+'"><div class="row"><h3>'+SOBRE[k[0]].name+'</h3><span class="amt num">'+Q(r[k[0]])+'</span></div><p style="font-size:14px">'+k[1]+'</p>'+(r.bills?'<div class="chips">'+chipsHTML(r.bills[k[0]])+'</div>':'')+'</section>'});
-    h+='<p class="note">Su regla: de cada Q100, Q'+S.setup.pctReponer+' vuelven al negocio, Q'+(100-S.setup.pctReponer-S.setup.pctColchon)+' son para usted y Q'+S.setup.pctColchon+' van al apartado. Si no cuadra exacto con sus billetes, la app lo acomoda al más cercano.</p><button class="big-btn go" id="btn-listo">Ya los puse en su lugar</button>';
+    h+='<p class="note">Su regla: de cada Q100, Q'+S.setup.pctReponer+' vuelven al negocio. Al apartado van '+Q(apartadoDia(S.setup))+' al día para su préstamo y su ahorro. El resto es para usted. Si no cuadra exacto con sus billetes, la app lo acomoda al más cercano.</p><button class="big-btn go" id="btn-listo">Ya los puse en su lugar</button>';
   } else {
     h=head('',3,3)+'<div class="party"><div class="coins" aria-hidden="true">'+['var(--verde)','var(--amarillo)','var(--naranja)','var(--amarillo)','var(--verde)'].map(function(col,k){return '<span style="left:calc(50% - 19px + '+((k-2)*44)+'px);background:'+col+';animation-delay:'+(k*0.08)+'s"></span>'}).join('')+'</div><h2>'+esc(c.frase)+'</h2><p class="note">Racha: '+c.racha+(c.racha===1?' día':' días')+', +'+PTS_CIERRE+' puntos</p></div>';
     if(c.subio) h+='<section class="up">'+rankSVG(c.rango)+'<p class="label">¡Subió de rango!</p><h3 style="font-size:22px">Ahora es '+RANGOS[c.rango].n+'</h3></section>';
@@ -661,17 +675,17 @@ function renderDevolver(){
 function pagar(r,amt){amt=Math.min(Math.round(amt),resta(r));if(amt<=0)return 0;r.pagos=r.pagos||[];r.pagos.push({fecha:TODAY,monto:amt});if(resta(r)===0)r.devuelto=TODAY;return amt}
 
 /* ---------- ajustes ---------- */
+function apartadoTxt(c,a){var d=Math.round(c/30+a);return d>0?'Cada día la app le va a apartar <b style="display:inline">'+Q(d)+'</b> en el sobre naranja'+(c>0&&a>0?' para su préstamo y su ahorro.':c>0?' para su préstamo.':' para su ahorro.'):'No va a apartar nada por ahora. Lo puede cambiar cuando quiera.'}
 function renderAjustes(nuevo){
   var s=nuevo?defaultsSetup():S.setup; if(nuevo)s.negocio='';
   var h=head(nuevo?'Su negocio':'Ajustes',0,0);
   if(nuevo) h+='<p>Conteste unos datos y empiece con sus sobres vacíos. Los datos se quedan solo en este teléfono.</p>';
   h+='<div class="field"><label for="a-negocio">Nombre del negocio</label><input id="a-negocio" maxlength="40" placeholder="Ej. Tienda Don Julio" value="'+esc(s.negocio)+'"><small>No hace falta poner su nombre completo ni dirección.</small></div>';
-  var us=100-s.pctReponer-s.pctColchon;
   h+='<div class="field"><label for="a-rep">De cada Q100 que entran, ¿cuántos vuelven al negocio?</label><input id="a-rep" type="number" inputmode="numeric" min="0" max="95" value="'+s.pctReponer+'"><small>Para comprar, reponer o pagar gastos del negocio, como gasolina o herramientas.</small></div>';
-  h+='<div class="field"><label for="a-col">¿Cuántos aparta para préstamos y emergencias?</label><input id="a-col" type="number" inputmode="numeric" min="0" max="95" value="'+s.pctColchon+'"><small>Puede empezar con poco, aunque sean Q5.</small></div>';
-  h+='<div class="info" id="a-usted">Para usted quedan <b style="display:inline">Q'+us+'</b> de cada Q100.</div>';
-  h+='<div class="field"><label for="a-meta">¿Cuánto gasta al mes en compras del negocio?</label><input id="a-meta" type="number" inputmode="numeric" min="0" value="'+s.metaMes+'"><small>Sume todo lo de un mes, aunque compre cada día, cada semana o cada quince días.</small></div>';
-  h+='<div class="field"><label for="a-gan">¿Cuánto le gustaría ganar al mes?</label><input id="a-gan" type="number" inputmode="numeric" min="0" value="'+(s.metaGanancia||0)+'"><small>Ganancia: lo que vende menos lo que gasta en el negocio. Es su meta, la puede cambiar cuando quiera.</small></div>';
+  h+='<div class="field"><label for="a-cuota">¿Paga algún préstamo? ¿Cuánto paga al mes?</label><input id="a-cuota" type="number" inputmode="numeric" min="0" value="'+(s.cuotaMes||0)+'"><small>Ponga 0 si no tiene préstamos.</small></div>';
+  h+='<div class="field"><label for="a-ahorro">¿Cuánto quiere ahorrar cada día?</label><input id="a-ahorro" type="number" inputmode="numeric" min="0" value="'+(s.ahorroDia||0)+'"><small>Puede empezar con poco, aunque sean Q5.</small></div>';
+  h+='<div class="info n" id="a-usted">'+apartadoTxt(s.cuotaMes||0,s.ahorroDia||0)+'</div>';
+  h+='<div class="field"><label for="a-meta-u">¿Cuánto le gustaría que le quede para usted al mes?</label><input id="a-meta-u" type="number" inputmode="numeric" min="0" value="'+(s.metaUsted||0)+'"><small>Lo que le queda después de pagar las compras del negocio, su préstamo y su ahorro.</small></div>';
   h+='<div class="field"><label for="a-alarma">Hora del recordatorio de cierre</label><input id="a-alarma" type="time" value="'+esc(s.alarma)+'"></div>';
   h+='<p class="note bad" id="a-err" hidden></p><button class="big-btn go" id="a-guardar" data-nuevo="'+(nuevo?1:0)+'">'+(nuevo?'Empezar':'Guardar')+'</button>';
   if(!nuevo) h+='<section class="card"><h3>Datos</h3><p class="note">Puede volver al negocio de ejemplo o empezar con su propio negocio desde cero.</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="big-btn plain" style="margin:0;font-size:16px" id="a-demo">Ver el negocio de ejemplo</button><button class="big-btn plain" style="margin:0;font-size:16px" id="a-nuevo">Empezar con mi negocio</button></div></section><section class="card install"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v8M8.5 11.5L12 15l3.5-3.5"/></svg><div><h3>Úsela como una app</h3><p class="note">En el navegador del celular abra el menú y elija Agregar a pantalla de inicio. Funciona aunque se vaya la señal.</p></div></section><p class="credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>';
@@ -693,9 +707,9 @@ document.addEventListener('click',function(e){
   if(id==='a-demo'){S=demoState();save();closeSheet();go('hoy');toast('Negocio de ejemplo cargado');return}
   if(id==='a-guardar'){
     var v=function(x){return document.getElementById(x).value}, nuevo=t.dataset.nuevo==='1';
-    var st={negocio:v('a-negocio').trim()||'Mi negocio',pctReponer:Math.max(0,+v('a-rep')||0),pctColchon:Math.max(0,+v('a-col')||0),metaMes:Math.max(0,+v('a-meta')||0),metaGanancia:Math.max(0,+v('a-gan')||0),alarma:v('a-alarma')||'19:00'};
-    if(st.pctReponer+st.pctColchon>95){var er=document.getElementById('a-err');er.textContent='Lo del negocio más lo apartado no puede pasar de Q95: algo tiene que quedar para usted.';er.hidden=false;return}
-    if(nuevo){S={v:5,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}else S.setup=st;
+    var st={negocio:v('a-negocio').trim()||'Mi negocio',pctReponer:Math.max(0,+v('a-rep')||0),cuotaMes:Math.max(0,+v('a-cuota')||0),ahorroDia:Math.max(0,+v('a-ahorro')||0),metaUsted:Math.max(0,+v('a-meta-u')||0),alarma:v('a-alarma')||'19:00'};
+    if(st.pctReponer>95){var er=document.getElementById('a-err');er.textContent='Lo que vuelve al negocio no puede pasar de Q95 de cada Q100: algo tiene que quedar para usted.';er.hidden=false;return}
+    if(nuevo){S={v:6,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}else S.setup=st;
     save();closeSheet();go('hoy');toast(nuevo?'Listo. Esta noche hace su primer cierre.':'Ajustes guardados');return;
   }
   /* cierre */
@@ -739,7 +753,7 @@ document.addEventListener('click',function(e){
 });
 document.addEventListener('input',function(e){
   var t=e.target;
-  if(t.id==='a-rep'||t.id==='a-col'){var u=100-(+document.getElementById('a-rep').value||0)-(+document.getElementById('a-col').value||0);document.getElementById('a-usted').innerHTML='Para usted quedan <b style="display:inline">Q'+u+'</b> de cada Q100.';return}
+  if(t.id==='a-cuota'||t.id==='a-ahorro'){document.getElementById('a-usted').innerHTML=apartadoTxt(+document.getElementById('a-cuota').value||0,+document.getElementById('a-ahorro').value||0);return}
   if(t.id==='typed'){cierre.typed=t.value;var tot=+t.value||0;document.getElementById('cierre-total').textContent=Q(tot);document.getElementById('btn-siguiente').disabled=!(tot>0);return}
   if(t.id==='m-typed'){mov.typed=t.value;var pos=t.selectionStart;renderMov();var n=document.getElementById('m-typed');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}return}
 });
