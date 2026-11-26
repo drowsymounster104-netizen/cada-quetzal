@@ -1,5 +1,5 @@
-const CACHE='cada-quetzal-v9';
-const FILES=['./','index.html','manifest.webmanifest','favicon.svg','icon-192.png','icon-512.png','apple-touch-icon.png'];
+const CACHE='cada-quetzal-v10';
+const FILES=['./','index.html','manifest.webmanifest','favicon.svg','quetzal.svg','icon-192.png','icon-512.png','apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)));self.skipWaiting()});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==CACHE).map(x=>caches.delete(x)))));self.clients.claim()});
 self.addEventListener('fetch',e=>{
