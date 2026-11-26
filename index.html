@@ -152,6 +152,8 @@ main{display:flex;flex-direction:column;gap:14px}
 .ledger div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--muted)}
 .ledger div:last-child{border-bottom:0}
 .ledger b{color:var(--ink);font-weight:700}
+.ledger span small{display:block;font-size:12px;color:var(--muted);font-weight:500;margin-top:2px}
+.ledger b{text-align:right;white-space:nowrap}
 .ledger .tot{color:var(--ink);font-weight:800}
 .ledger .tot b{font-size:20px;font-weight:800}
 
@@ -352,19 +354,20 @@ var KEY='cada-quetzal-v1';
 var DEN=[200,100,50,20,10,5,1];
 var BILLCOLOR={200:'var(--b200)',100:'var(--b100)',50:'var(--b50)',20:'var(--b20)',10:'var(--b10)',5:'var(--b5)',1:'var(--b1)'};
 var MOTIVOS=[
-  {id:'comida',label:'Comida de la casa',sobre:'amarillo'},
-  {id:'servicios',label:'Luz, agua o renta',sobre:'amarillo'},
-  {id:'estudios',label:'Estudios',sobre:'amarillo'},
+  {id:'comida',label:'Comida y mercado',sobre:'amarillo'},
+  {id:'servicios',label:'Luz, agua y gas',sobre:'amarillo'},
+  {id:'estudios',label:'Hijos y estudios',sobre:'amarillo'},
+  {id:'gustito',label:'Un gustito',sobre:'amarillo'},
   {id:'cuota',label:'Pago de préstamo',sobre:'naranja'},
   {id:'salud',label:'Salud',sobre:'naranja'},
   {id:'emergencia',label:'Emergencia',sobre:'naranja'},
-  {id:'otro',label:'Otro gasto',sobre:'amarillo'}
+  {id:'otro',label:'Otro',sobre:'amarillo'}
 ];
 var SOBRE={verde:{name:'Sobre verde',rule:'Vuelve al negocio: mercadería, proveedores, gasolina y sueldos de sus trabajadores. No se toca para la casa.',cls:'s-v'},
   amarillo:{name:'Sobre amarillo',rule:'Para usted: lo que se lleva para su casa.',cls:'s-a'},
   naranja:{name:'Sobre naranja',rule:'Apartado: para pagar préstamos y cubrir emergencias.',cls:'s-n'}};
 var RANGOS=[{n:'Emprendedor Semilla',min:0},{n:'Emprendedor en Marcha',min:3},{n:'Emprendedor Constante',min:9},{n:'Emprendedor Ordenado',min:20},{n:'Emprendedor Maestro',min:45}];
-var PTS_CIERRE=10, PTS_META=30;
+var PTS_CIERRE=10, PTS_META=30, PTS_ARQUEO=20;
 
 /* ---------- fechas ---------- */
 function ds(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -469,6 +472,7 @@ function balances(s){var b={verde:0,amarillo:0,naranja:0};
   s.retiros.forEach(function(r){
     if(r.tipo==='compra') b.verde-=r.monto;
     else if(r.tipo==='prestamo') { b.verde-=resta(r); b.amarillo-=pagado(r); }
+    else if(r.tipo==='ajuste') b[r.sobre]+=r.monto;
     else b[r.sobre]-=r.monto;
   });return b}
 function forecast(s,o){
@@ -516,11 +520,17 @@ function semanasCerradas(s){
   while(w<actual){out.push({ini:w,r:metasSemana(s,w)});w=add(w,7)}
   return out;
 }
+function arqueoPendiente(s){
+  if(!s.cierres.length) return false;
+  var ar=s.arqueos||[], ref=ar.length?ar[ar.length-1].fecha:s.cierres.map(function(c){return c.fecha}).sort()[0];
+  return diff(ref,TODAY)>=7;
+}
 function puntosMes(s){
   var mes=TODAY.slice(0,7);
   var pc=s.cierres.filter(function(c){return c.fecha.slice(0,7)===mes}).length*PTS_CIERRE;
   var pm=sum(semanasCerradas(s).filter(function(w){return add(w.ini,6).slice(0,7)===mes}).map(function(w){return w.r.cumplidas*PTS_META}));
-  return pc+pm;
+  var pa=(s.arqueos||[]).filter(function(a){return a.fecha.slice(0,7)===mes}).length*PTS_ARQUEO;
+  return pc+pm+pa;
 }
 var WX={sol:{t:'Despejado',s:'Le alcanza para los gastos del negocio.'},nube:{t:'Nublado',s:'Va justo. Cuide el sobre verde.'},lluvia:{t:'Lluvia',s:'Así no le va a alcanzar para los gastos del negocio.'}};
 
@@ -547,12 +557,13 @@ function chipsHTML(list){if(!list||!list.length)return '<span class="note">Sin b
 var HELP={
   sobres:['Sus tres sobres','Su dinero se reparte en tres sobres. El verde vuelve al negocio para comprar mercadería. El amarillo es para usted y su casa. El naranja es un apartado para pagar su préstamo y para emergencias.'],
   pron:['El pronóstico','La app compara lo que junta en el sobre verde con lo que gasta en el negocio: mercadería, proveedores y sueldos. Sol: le alcanza. Nube: va justo. Lluvia: si sigue así, no le va a alcanzar.'],
-  mes:['Su parte este mes','Es la suma de lo que ha caído en su sobre amarillo este mes. Ese dinero sí es suyo: lo del negocio y lo apartado ya quedaron separados.'],
-  hoyres:['Así se repartió hoy','Cuánto de lo que vendió hoy fue a cada sobre, y cuánto sacó hoy para gastos del negocio o para la casa.'],
+  mes:['Lo que ganó este mes','Es la suma de su parte de cada día, lo que cayó en su sobre amarillo. Le restamos lo que se llevó a la casa y le queda lo que todavía tiene en ese sobre.'],
+  hoyres:['Resumen de hoy','Cuánto de lo que vendió hoy fue a cada sobre. Si hoy sacó dinero, aparece abajo y le decimos cuánto le quedó.'],
+  arqueo:['Arqueo de la semana','Es contar el dinero que de verdad hay en cada sobre y compararlo con la app, como hacen los auditores. Si no cuadra, la app le ayuda a encontrar qué faltó anotar.'],
   reto:['Reto de 7 días','Cierre la caja 7 días seguidos. Cada cuadrito marcado es un día que separó bien su dinero.'],
   metas:['Metas de la semana','Cada semana hay tres metas. Si las cumple, suma puntos para el premio del mes. Se renuevan cada lunes.'],
   rango:['Su rango','Cada vez que cierra la caja suma un cierre. Con más cierres sube de rango, de Emprendedor Semilla hasta Emprendedor Maestro.'],
-  premio:['Premio del mes','Cada cierre de caja suma 10 puntos y cada meta cumplida suma 30. Los que juntan más puntos participan por premios de los patrocinadores.']
+  premio:['Premio del mes','Cada cierre de caja suma 10 puntos, cada arqueo suma 20 y cada meta cumplida suma 30. Los que juntan más puntos participan por premios de los patrocinadores.']
 };
 function helpBtn(k){return '<button class="help" data-help="'+k+'" aria-label="¿Qué es esto?">?</button>'}
 function showHelp(k){var x=HELP[k];if(!x)return;document.getElementById('help-root').innerHTML='<div class="overlay" data-help-close><div class="card" role="dialog" aria-modal="true" aria-label="'+x[0]+'"><h3>'+x[0]+'</h3><p>'+x[1]+'</p><button class="big-btn go" data-help-close>Entendido</button></div></div>'}
@@ -587,6 +598,7 @@ function renderHoy(){
   }
   h+='<section class="card"><div class="row c"><h3>Lo que tiene en sus sobres</h3>'+helpBtn('sobres')+'</div><div class="mini3 num">'
     +[['verde','Negocio'],['amarillo','Para usted'],['naranja','Apartado']].map(function(k){return '<button class="mini '+SOBRE[k[0]].cls+'" data-go="sobres"><span>'+k[1]+'</span><b>'+Q(b[k[0]])+'</b></button>'}).join('')+'</div></section>';
+  if(arqueoPendiente(S)) h+='<section class="card debt" style="border-left-color:var(--paper)"><div><div class="row c"><span class="label">Arqueo de la semana</span>'+helpBtn('arqueo')+'</div><h3>Cuente lo que tiene en cada sobre</h3><p class="note" style="margin-top:4px">La app lo compara con lo anotado. Toma dos minutos y suma '+PTS_ARQUEO+' puntos.</p></div><button class="big-btn go small" id="btn-arqueo">Hacer arqueo</button></section>';
   h+=debtCard();
   h+='<button class="act wide sac" id="btn-saque"><span class="ico">-Q</span><span class="txt">Saqué dinero<small>Para compras, la casa, un préstamo o una emergencia</small></span></button>';
   if(f&&!f.sinCompras) h+='<section class="card"><div class="row c"><button class="teaser" data-go="pronostico" style="border:0;background:none;padding:0">'+wxSVG(f.status)+'<span><span class="label">Su dinero a fin de mes</span><b style="display:block;font-family:var(--display);font-size:20px;font-weight:700">'+WX[f.status].t+'</b><span class="note" style="margin:0">'+WX[f.status].s+'</span></span></button>'+helpBtn('pron')+'</div></section>';
@@ -600,22 +612,40 @@ function renderSobres(){
   h+='<div class="row c" style="padding:0 4px"><h2 style="font-size:26px">Mis sobres</h2>'+helpBtn('sobres')+'</div>';
   ['verde','amarillo','naranja'].forEach(function(k){h+='<section class="sobre '+SOBRE[k].cls+'"><h3>'+SOBRE[k].name+'</h3><p>'+SOBRE[k].rule+'</p><div class="amt num">'+Q(b[k])+'</div></section>'});
   h+=debtCard();
-  if(closedOn(S,TODAY)){var c=S.cierres.filter(function(x){return x.fecha===TODAY})[0],cmp=comprasEntre(S,TODAY,TODAY),cas=casaEntre(S,TODAY,TODAY);
-    h+='<section class="card"><div class="row c"><h3>Así se repartió hoy</h3>'+helpBtn('hoyres')+'</div><p class="note" style="margin-top:4px">Vendió '+Q(c.total)+'</p><div class="ledger num">'
-      +'<div><span><span class="dot s-v"></span>Al negocio</span><b>'+Q(c.verde)+'</b></div><div><span><span class="dot s-a"></span>Para usted</span><b>'+Q(c.amarillo)+'</b></div><div><span><span class="dot s-n"></span>Al apartado</span><b>'+Q(c.naranja)+'</b></div>'
-      +'<div><span>Pagó hoy en gastos del negocio</span><b>'+Q(cmp)+'</b></div><div><span>Se llevó hoy a la casa</span><b>'+Q(cas)+'</b></div></div></section>'}
-  var mes=TODAY.slice(0,8)+'01', pm=parteEntre(S,mes,TODAY), cm=casaEntre(S,mes,TODAY), mu=S.setup.metaUsted||0;
-  h+='<section class="card"><div class="row c"><h3>Su parte este mes</h3>'+helpBtn('mes')+'</div><p class="num" style="margin-top:6px"><b style="font-size:26px;font-weight:800">'+Q(pm)+'</b>'+(mu?' de su meta de '+Q(mu):'')+'</p>'+(mu?'<div class="bar"><i style="width:'+Math.min(100,pm/mu*100)+'%"></i></div>':'')+'<p class="note">Es lo que ha caído en su sobre amarillo este mes. Ya se llevó '+Q(cm)+' a la casa.</p></section>';
+  var cH=S.cierres.filter(function(x){return x.fecha===TODAY})[0];
+  var hoyR=S.retiros.filter(function(r){return r.fecha===TODAY});
+  var sN=sum(hoyR.filter(function(r){return r.tipo==='compra'}).map(function(r){return r.monto}));
+  var sC=sum(hoyR.filter(function(r){return r.tipo==='prestamo'||(r.tipo==='casa'&&r.sobre==='amarillo')}).map(function(r){return r.monto}));
+  var sE=sum(hoyR.filter(function(r){return r.tipo==='casa'&&r.sobre==='naranja'}).map(function(r){return r.monto}));
+  if(cH||sN||sC||sE){
+    h+='<section class="card"><div class="row c"><h3>Resumen de hoy</h3>'+helpBtn('hoyres')+'</div><div class="ledger num">';
+    if(cH) h+='<div class="tot"><span>Vendió</span><b>'+Q(cH.total)+'</b></div><div><span><span class="dot s-v"></span>Negocio</span><b>'+Q(cH.verde)+'</b></div><div><span><span class="dot s-a"></span>Para usted</span><b>'+Q(cH.amarillo)+'</b></div><div><span><span class="dot s-n"></span>Apartado</span><b>'+Q(cH.naranja)+'</b></div>';
+    if(sN) h+='<div><span>(-) Gastos del negocio</span><b>-'+Q(sN)+'</b></div>';
+    if(sC) h+='<div><span>(-) Gastos de la casa</span><b>-'+Q(sC)+'</b></div>';
+    if(sE) h+='<div><span>(-) Préstamo o emergencia</span><b>-'+Q(sE)+'</b></div>';
+    if(cH) h+='<div class="tot"><span>Le quedó hoy</span><b>'+Q(cH.total-sN-sC-sE)+'</b></div>';
+    h+='</div></section>';
+  }
+  var mes=TODAY.slice(0,8)+'01', mr=S.retiros.filter(function(r){return r.fecha>=mes&&r.fecha<=TODAY});
+  var gano=parteEntre(S,mes,TODAY), vendio=ventasEntre(S,mes,TODAY), mu=S.setup.metaUsted||0;
+  var casaA=sum(mr.filter(function(r){return r.tipo==='casa'&&r.sobre==='amarillo'}).map(function(r){return r.monto}));
+  var devol=sum(S.retiros.filter(function(r){return r.tipo==='prestamo'}).map(function(r){return sum((r.pagos||[]).filter(function(x){return x.fecha>=mes&&x.fecha<=TODAY}).map(function(x){return x.monto}))}));
+  var ajA=sum(mr.filter(function(r){return r.tipo==='ajuste'&&r.sobre==='amarillo'}).map(function(r){return r.monto}));
+  h+='<section class="card"><div class="row c"><h3>Lo que ganó este mes</h3>'+helpBtn('mes')+'</div><p class="note" style="margin-top:2px">Este mes vendió '+Q(vendio)+'</p><p class="num" style="margin-top:8px"><b style="font-size:28px;font-weight:800">'+Q(gano)+'</b>'+(mu?' de su meta de '+Q(mu):'')+'</p>'+(mu?'<div class="bar"><i style="width:'+Math.min(100,gano/mu*100)+'%"></i></div>':'')
+    +'<div class="ledger num"><div><span>Su parte de cada día</span><b>'+Q(gano)+'</b></div><div><span>(-) Se llevó a la casa</span><b>-'+Q(casaA+devol)+'</b></div>'+(ajA?'<div><span>('+(ajA<0?'-':'+')+') Ajuste de arqueo</span><b>'+(ajA<0?'-':'+')+Q(Math.abs(ajA))+'</b></div>':'')+'<div class="tot"><span>Le queda</span><b>'+Q(gano-casaA-devol+ajA)+'</b></div></div>';
+  var cats={};mr.filter(function(r){return r.tipo==='prestamo'||(r.tipo==='casa'&&r.sobre==='amarillo')}).forEach(function(r){var l=motivo(r.motivo).label;cats[l]=(cats[l]||0)+r.monto});
+  var ck=Object.keys(cats).sort(function(a,b){return cats[b]-cats[a]}), ct=sum(ck.map(function(k){return cats[k]}));
+  if(ct) h+='<p class="label" style="margin-top:16px">En qué se fue lo de la casa</p><div class="ledger num">'+ck.map(function(k){return '<div><span>'+esc(k)+'</span><b>'+Q(cats[k])+' <small>'+pct(cats[k],ct)+'%</small></b></div>'}).join('')+'</div>';
+  h+='</section>';
   h+='<button class="big-btn plain" data-go="pronostico" style="margin:0">Ver el pronóstico de fin de mes</button>';
-  var from=add(TODAY,-29), cs=S.cierres.filter(function(c){return c.fecha>=from});
-  var compras=sum(S.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='compra'}).map(function(r){return r.monto}));
-  var ven=sum(cs.map(function(c){return c.total}));
-  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(ven)+'</b></div><div><span class="label">Gastos del negocio</span><b>'+Q(compras)+'</b></div><div><span class="label">Su parte</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div><div><span class="label">Apartó</span><b>'+Q(sum(cs.map(function(c){return c.naranja})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
+  h+='<button class="big-btn plain" id="btn-arqueo" style="margin:0">Hacer un arqueo de mis sobres</button>';
   var mov=[];
   S.cierres.forEach(function(c){mov.push({f:c.fecha,t:'Cierre de caja',sub:'Repartido en 3 sobres',m:'+'+Q(c.total),k:null})});
+  (S.arqueos||[]).forEach(function(a){mov.push({f:a.fecha,t:'Arqueo de sobres',sub:a.ok?'Cuadró':'Con diferencias',m:a.ok?'✓':'',k:null})});
   S.retiros.forEach(function(r){
     if(r.tipo==='compra') mov.push({f:r.fecha,t:'Gastos del negocio',sub:'Sobre verde',m:'-'+Q(r.monto),k:'verde'});
     else if(r.tipo==='prestamo'){var rs=resta(r),pg=pagado(r);mov.push({f:r.fecha,t:'Préstamo para la casa',sub:motivo(r.motivo).label+(rs===0?', devuelto completo':pg>0?', faltan '+Q(rs):', pendiente'),m:'-'+Q(r.monto),k:'verde'});(r.pagos||[]).forEach(function(pp){mov.push({f:pp.fecha,t:'Devolución al sobre verde',sub:'Sale de su parte',m:'+'+Q(pp.monto),k:'verde'})})}
+    else if(r.tipo==='ajuste') mov.push({f:r.fecha,t:'Ajuste de arqueo',sub:SOBRE[r.sobre].name+(r.monto<0?', faltante':', sobrante'),m:(r.monto<0?'-':'+')+Q(Math.abs(r.monto)),k:r.sobre});
     else mov.push({f:r.fecha,t:motivo(r.motivo).label,sub:SOBRE[r.sobre].name,m:'-'+Q(r.monto),k:r.sobre});
   });
   mov.sort(function(a,b){return a.f<b.f?1:a.f>b.f?-1:0});
@@ -651,7 +681,7 @@ function renderPuesto(){
   h+='<p class="note">'+(next?'Le faltan '+(next.min-n)+' cierres de caja para ser '+next.n+'.':'Llegó al rango más alto.')+'</p></section>';
   h+='<section class="card"><div class="row c"><h3>Metas de la semana</h3>'+helpBtn('metas')+'</div><div class="metas">'+ms.metas.map(function(m){return '<div class="meta'+(m.ok?' ok':'')+'"><span class="tick" aria-hidden="true">'+(m.ok?'✓':'')+'</span><span>'+m.t+'<small class="num">'+m.p+'</small></span></div>'}).join('')+'</div><p class="note">'+ms.cumplidas+' de 3 cumplidas. Se renuevan cada lunes.</p></section>';
   var pts=puntosMes(S);
-  h+='<section class="card premio"><div class="row c"><h3>Premio del mes</h3><span style="display:flex;gap:8px;align-items:center"><span class="pill">Próximamente</span>'+helpBtn('premio')+'</span></div><p class="big num">'+pts+' <small>puntos este mes</small></p><p class="note" style="margin-top:4px">Cada cierre de caja suma '+PTS_CIERRE+' puntos y cada meta semanal cumplida suma '+PTS_META+'. Los emprendedores con más puntos participarán por premios de aliados y patrocinadores.</p><p class="note">Se gana por constancia, no por cuánto dinero tenga. Al entregar el premio aplican algunas condiciones.</p></section>';
+  h+='<section class="card premio"><div class="row c"><h3>Premio del mes</h3><span style="display:flex;gap:8px;align-items:center"><span class="pill">Próximamente</span>'+helpBtn('premio')+'</span></div><p class="big num">'+pts+' <small>puntos este mes</small></p><p class="note" style="margin-top:4px">Cada cierre de caja suma '+PTS_CIERRE+' puntos, cada arqueo suma '+PTS_ARQUEO+' y cada meta semanal cumplida suma '+PTS_META+'. Los emprendedores con más puntos participarán por premios de aliados y patrocinadores.</p><p class="note">Se gana por constancia, no por cuánto dinero tenga. Al entregar el premio aplican algunas condiciones.</p></section>';
   var L=[
     ['Primer cierre','Cerró la caja por primera vez.',n>=1],
     ['Tres en fila','3 días seguidos con la caja cerrada.',(S.maxRacha||0)>=3],
@@ -664,7 +694,9 @@ function renderPuesto(){
     ['Apartado de Q500','Su sobre naranja llegó a Q500.',b.naranja>=500],
     ['15 cierres','Medio mes cerrando la caja.',n>=15],
     ['30 cierres','Un mes completo de cierres.',n>=30],
-    ['60 cierres','Dos meses de constancia.',n>=60]
+    ['60 cierres','Dos meses de constancia.',n>=60],
+    ['Primer arqueo','Contó sus sobres y los comparó con la app.',(S.arqueos||[]).length>=1],
+    ['Cuentas claras','Un arqueo que cuadró exacto.',(S.arqueos||[]).some(function(a){return a.ok})]
   ];
   h+='<section class="card"><div class="row"><h3>Logros</h3><span class="label num">'+L.filter(function(x){return x[2]}).length+' de '+L.length+'</span></div><div class="logros">'+L.map(function(x){return '<div class="logro'+(x[2]?' on':'')+'"><b>'+x[0]+'</b>'+x[1]+'</div>'}).join('')+'</div></section>';
   return h;
@@ -738,7 +770,7 @@ function renderMov(){
   } else {
     var ini=lunes(TODAY), casa=casaEntre(S,ini,TODAY), parte=parteEntre(S,ini,TODAY);
     h=head('Saqué para la casa',0,0)+amountBlock(M);
-    h+='<div class="field"><span>¿Para qué fue?</span><div class="choices">'+MOTIVOS.filter(function(x){return ['comida','servicios','estudios','otro'].indexOf(x.id)>-1}).map(function(x){return '<button class="choice" data-motivo="'+x.id+'" aria-pressed="'+(x.id===M.motivo)+'">'+x.label+'</button>'}).join('')+'</div></div>';
+    h+='<div class="field"><span>¿Para qué fue?</span><div class="choices">'+MOTIVOS.filter(function(x){return ['comida','servicios','estudios','gustito','otro'].indexOf(x.id)>-1}).map(function(x){return '<button class="choice" data-motivo="'+x.id+'" aria-pressed="'+(x.id===M.motivo)+'">'+x.label+'</button>'}).join('')+'</div></div>';
     h+='<div class="field"><span>¿De dónde lo sacó?</span><div class="seg">'
       +'<button class="s-a" data-sobre="amarillo" aria-pressed="'+(M.sobre==='amarillo')+'">De mi parte</button>'
       +'<button class="s-v" data-sobre="verde" aria-pressed="'+(M.sobre==='verde')+'">Prestado del verde</button></div></div>';
@@ -761,6 +793,54 @@ function renderDevolver(){
   openSheet(h,'d');
 }
 function pagar(r,amt){amt=Math.min(Math.round(amt),resta(r));if(amt<=0)return 0;r.pagos=r.pagos||[];r.pagos.push({fecha:TODAY,monto:amt});if(resta(r)===0)r.devuelto=TODAY;return amt}
+
+/* ---------- arqueo ---------- */
+var arq=null, ARQ=['verde','amarillo','naranja'];
+function arqTotal(k){var A=arq.c[k];return A.typing?(+A.typed||0):countsTotal(A.counts)}
+function renderArqueo(){
+  var h='';
+  if(arq.step<3){
+    var k=ARQ[arq.step], A=arq.c[k];
+    h=head('Arqueo de sobres',arq.step+1,4)+'<section class="place '+SOBRE[k].cls+'"><h3>'+SOBRE[k].name+'</h3><p style="font-size:14px;margin-top:2px">Saque el dinero de este sobre y toque cada billete o moneda.</p></section>';
+    h+='<div class="total num" id="arq-total">'+Q(arqTotal(k))+'</div>';
+    h+=A.typing?'<div class="field"><label for="arq-typed">Total que hay en el sobre</label><input id="arq-typed" type="number" inputmode="numeric" min="0" placeholder="Ej. 350" value="'+esc(A.typed)+'"></div><button class="link" id="arq-bills">Mejor toco billetes</button>'
+      :billGrid(A.counts,'aden')+'<button class="link" id="arq-type">Prefiero escribir el total</button>';
+    h+='<button class="big-btn go" id="arq-next">'+(arq.step<2?'Siguiente sobre':'Ver resultado')+'</button>';
+    h+='<p class="note" style="text-align:center">Si el sobre está vacío, toque Siguiente.</p>';
+  } else {
+    var dif=arq.dif, malos=ARQ.filter(function(k){return dif[k]!==0});
+    h=head('Resultado del arqueo',4,4);
+    h+='<section class="card"><div class="ledger num">'+ARQ.map(function(k){var d=dif[k];return '<div><span><span class="dot '+SOBRE[k].cls+'"></span>'+SOBRE[k].name+'<small>Contó '+Q(arq.cont[k])+', la app dice '+Q(arq.esp[k])+'</small></span><b>'+(d===0?'Cuadra ✓':(d<0?'Faltan ':'Sobran ')+Q(Math.abs(d)))+'</b></div>'}).join('')+'</div></section>';
+    if(!malos.length){
+      h+='<div class="party" style="padding-top:4px"><h2>¡Cuentas claras!</h2><p class="note">Todo cuadra con lo anotado. +'+PTS_ARQUEO+' puntos.</p></div><button class="big-btn go" id="arq-fin">Listo</button>';
+    } else {
+      h+='<p>Vamos a ver qué pasó. Escoja una respuesta para cada sobre.</p>';
+      malos.forEach(function(k){var d=dif[k],ops;
+        if(d<0) ops=k==='verde'?[['gasto','Olvidé anotar un gasto del negocio'],['prestamo','Lo saqué para la casa'],['nose','No sé']]
+          :k==='amarillo'?[['casa','Olvidé anotar algo de la casa'],['nose','No sé']]
+          :[['emerg','Olvidé anotar un pago o emergencia'],['nose','No sé']];
+        else ops=[['venta','Olvidé anotar una venta'],['nose','No sé']];
+        h+='<section class="card"><h3>'+(d<0?'Faltan ':'Sobran ')+Q(Math.abs(d))+' en el '+SOBRE[k].name.toLowerCase()+'</h3><div class="choices" style="margin-top:12px">'+ops.map(function(o){return '<button class="choice" data-arqres="'+k+':'+o[0]+'" aria-pressed="'+(arq.res[k]===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>'
+          +(arq.res[k]==='nose'&&d<0?'<p class="note">La app va a dejar el sobre con lo que de verdad tiene y el faltante queda anotado en Movimientos.</p>':'')+(arq.res[k]==='prestamo'?'<p class="note">Queda como préstamo del sobre verde para devolver.</p>':'')+'</section>'});
+      var listo=malos.every(function(k){return arq.res[k]});
+      h+='<button class="big-btn go" id="arq-fin"'+(listo?'':' disabled')+'>Terminar arqueo</button><p class="note" style="text-align:center">Arqueo hecho: +'+PTS_ARQUEO+' puntos.</p>';
+    }
+  }
+  openSheet(h,'q'+arq.step);
+}
+function cerrarArqueo(){
+  var malos=ARQ.filter(function(k){return arq.dif[k]!==0}), nose=false;
+  malos.forEach(function(k){var d=arq.dif[k],m=Math.abs(d),r=arq.res[k];
+    if(d<0&&r==='gasto') S.retiros.push({fecha:TODAY,monto:m,tipo:'compra',motivo:null,sobre:'verde'});
+    else if(d<0&&r==='prestamo') S.retiros.push({fecha:TODAY,monto:m,tipo:'prestamo',motivo:'otro',sobre:'verde',devuelto:null,pagos:[]});
+    else if(d<0&&r==='casa') S.retiros.push({fecha:TODAY,monto:m,tipo:'casa',motivo:'otro',sobre:'amarillo'});
+    else if(d<0&&r==='emerg') S.retiros.push({fecha:TODAY,monto:m,tipo:'casa',motivo:'emergencia',sobre:'naranja'});
+    else {S.retiros.push({fecha:TODAY,monto:d,tipo:'ajuste',motivo:r==='venta'?'venta':null,sobre:k});if(d<0)nose=true}
+  });
+  S.arqueos=S.arqueos||[];S.arqueos.push({fecha:TODAY,esperado:arq.esp,contado:arq.cont,ok:malos.length===0});
+  save();closeSheet();
+  toast(malos.length===0?'¡Cuentas claras! +'+PTS_ARQUEO+' puntos.':nose?'Arqueo anotado. Sus sobres ya dicen lo que de verdad tienen.':'Arqueo anotado. Todo quedó cuadrado.');
+}
 
 /* ---------- bienvenida ---------- */
 var INTRO_KEY='cada-quetzal-intro', intro=0;
@@ -819,6 +899,15 @@ document.addEventListener('click',function(e){
   if(t.id==='intro-mio'){introVisto();renderAjustes(true);return}
   if(t.id==='a-intro'){intro=0;renderIntro();return}
   if(t.id==='btn-saque'){renderSaque();return}
+  if(t.id==='btn-arqueo'){arq={step:0,c:{verde:{counts:{},typed:'',typing:false},amarillo:{counts:{},typed:'',typing:false},naranja:{counts:{},typed:'',typing:false}},res:{}};renderArqueo();return}
+  if(t.dataset.aden){var A1=arq.c[ARQ[arq.step]];A1.counts[t.dataset.aden]=(A1.counts[t.dataset.aden]||0)+1;renderArqueo();return}
+  if(t.dataset.adenMinus){var A2=arq.c[ARQ[arq.step]],d3=t.dataset.adenMinus;A2.counts[d3]=Math.max(0,(A2.counts[d3]||0)-1);renderArqueo();return}
+  if(t.id==='arq-type'){var A3=arq.c[ARQ[arq.step]];A3.typing=true;A3.counts={};renderArqueo();var ai=document.getElementById('arq-typed');if(ai)ai.focus();return}
+  if(t.id==='arq-bills'){var A4=arq.c[ARQ[arq.step]];A4.typing=false;A4.typed='';renderArqueo();return}
+  if(t.id==='arq-next'){if(arq.step<2){arq.step++;renderArqueo();return}
+    var bl=balances(S);arq.esp={};arq.cont={};arq.dif={};ARQ.forEach(function(k){arq.esp[k]=Math.round(bl[k]);arq.cont[k]=Math.round(arqTotal(k));arq.dif[k]=arq.cont[k]-arq.esp[k]});arq.step=3;renderArqueo();return}
+  if(t.dataset.arqres){var pr=t.dataset.arqres.split(':');arq.res[pr[0]]=pr[1];renderArqueo();return}
+  if(t.id==='arq-fin'){cerrarArqueo();return}
   if(t.dataset.go){go(t.dataset.go);return}
   if(t.hasAttribute('data-close')){if(sheetKey.charAt(0)==='i')introVisto();closeSheet();return}
   var id=t.id;
@@ -875,6 +964,7 @@ document.addEventListener('input',function(e){
   if(t.id==='a-rep'){document.querySelectorAll('[data-rep]').forEach(function(x){x.setAttribute('aria-pressed',x.dataset.rep===t.value)});return}
   if(t.id==='a-cuota'||t.id==='a-ahorro'){document.getElementById('a-usted').innerHTML=apartadoTxt(+document.getElementById('a-cuota').value||0,+document.getElementById('a-ahorro').value||0);return}
   if(t.id==='typed'){cierre.typed=t.value;var tot=+t.value||0;document.getElementById('cierre-total').textContent=Q(tot);document.getElementById('btn-siguiente').disabled=!(tot>0);return}
+  if(t.id==='arq-typed'){arq.c[ARQ[arq.step]].typed=t.value;document.getElementById('arq-total').textContent=Q(+t.value||0);return}
   if(t.id==='m-typed'){mov.typed=t.value;var pos=t.selectionStart;renderMov();var n=document.getElementById('m-typed');if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}return}
 });
 document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;var hr=document.getElementById('help-root');if(hr.innerHTML){hr.innerHTML='';return}if(root.innerHTML)closeSheet()});
