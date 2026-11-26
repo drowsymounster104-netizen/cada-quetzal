@@ -232,6 +232,12 @@ nav.tabs button[aria-current="page"]{color:var(--ink);background:var(--surface-2
 .loan{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .loan b{font-family:var(--display);font-size:22px;font-weight:600;display:block}
 .loan small{color:var(--muted);font-size:13px}
+.loan-p{display:flex;flex-direction:column;gap:10px}
+.loan-p b{font-family:var(--display);font-size:22px;font-weight:600}
+.loan-p small{color:var(--muted);font-size:13px}
+.dev-row{display:flex;gap:10px;align-items:flex-end}
+.dev-row .field{flex:1}
+.dev-row .big-btn{align-self:flex-end;padding:12px 18px}
 /* identidad: logo de tres sobres y franja de tejido */
 .logo{width:40px;height:40px;flex:0 0 auto}
 .logo svg{width:100%;height:100%}
@@ -348,11 +354,11 @@ function billsFor(total){
 /* ---------- estado ---------- */
 function defaultsSetup(){return {negocio:'Comedor La Esquina',sueldoSemana:700,pctReponer:60,pctColchon:10,metaMes:6000,alarma:'19:00'}}
 function demoState(){
-  var s={v:3,demo:true,setup:defaultsSetup(),cierres:[],retiros:[],maxRacha:6};
+  var s={v:4,demo:true,setup:defaultsSetup(),cierres:[],retiros:[],maxRacha:6};
   var plan=[[-9,410],[-8,365],[-6,480],[-5,395],[-4,520],[-3,440],[-2,375],[-1,505]];
   plan.forEach(function(p){var f=add(TODAY,p[0]);var r=repartir(p[1],billsFor(p[1]),s.setup);
     s.cierres.push({fecha:f,total:p[1],verde:r.verde,amarillo:r.amarillo,naranja:r.naranja})});
-  var R=function(d,m,tipo,mot,sobre,dev){var o={fecha:add(TODAY,d),monto:m,tipo:tipo,motivo:mot||null,sobre:sobre};if(tipo==='prestamo')o.devuelto=dev==null?null:add(TODAY,dev);s.retiros.push(o)};
+  var R=function(d,m,tipo,mot,sobre,dev){var o={fecha:add(TODAY,d),monto:m,tipo:tipo,motivo:mot||null,sobre:sobre};if(tipo==='prestamo'){o.devuelto=dev==null?null:add(TODAY,dev);o.pagos=dev==null?[]:[{fecha:add(TODAY,dev),monto:m}]}s.retiros.push(o)};
   R(-8,60,'casa','comida','amarillo');
   R(-6,600,'compra',null,'verde');
   R(-5,150,'casa','servicios','amarillo');
@@ -376,6 +382,10 @@ function migrate(s){
     });
     s.v=3;
   }
+  if(s.v<4){
+    s.retiros.forEach(function(r){if(r.tipo==='prestamo'&&!r.pagos)r.pagos=r.devuelto?[{fecha:r.devuelto,monto:r.monto}]:[]});
+    s.v=4;
+  }
   return s;
 }
 function load(){try{var t=localStorage.getItem(KEY);if(t){var s=JSON.parse(t);if(s&&s.setup&&s.cierres)return migrate(s)}}catch(e){}return null}
@@ -387,13 +397,15 @@ function closedOn(s,f){return s.cierres.some(function(c){return c.fecha===f})}
 function racha(s){var d=closedOn(s,TODAY)?TODAY:add(TODAY,-1),n=0;while(closedOn(s,d)){n++;d=add(d,-1)}return n}
 function rango(n){var i=0;RANGOS.forEach(function(l,k){if(n>=l.min)i=k});return i}
 function motivo(id){return MOTIVOS.filter(function(m){return m.id===id})[0]||MOTIVOS[5]}
-function pendientes(s){return s.retiros.filter(function(r){return r.tipo==='prestamo'&&!r.devuelto})}
-function deuda(s){return sum(pendientes(s).map(function(r){return r.monto}))}
+function pagado(r){return sum((r.pagos||[]).map(function(p){return p.monto}))}
+function resta(r){return Math.max(0,r.monto-pagado(r))}
+function pendientes(s){return s.retiros.filter(function(r){return r.tipo==='prestamo'&&resta(r)>0})}
+function deuda(s){return sum(pendientes(s).map(resta))}
 function balances(s){var b={verde:0,amarillo:0,naranja:0};
   s.cierres.forEach(function(c){b.verde+=c.verde;b.amarillo+=c.amarillo;b.naranja+=c.naranja});
   s.retiros.forEach(function(r){
     if(r.tipo==='compra') b.verde-=r.monto;
-    else if(r.tipo==='prestamo') { if(r.devuelto) b.amarillo-=r.monto; else b.verde-=r.monto; }
+    else if(r.tipo==='prestamo') { b.verde-=resta(r); b.amarillo-=pagado(r); }
     else b[r.sobre]-=r.monto;
   });return b}
 function forecast(s,o){
@@ -404,7 +416,7 @@ function forecast(s,o){
   var last=closedOn(s,TODAY)?TODAY:add(TODAY,-1);
   var span=Math.max(1,diff(first,last)+1);
   var verdeIn=sum(cs.map(function(c){return c.verde}));
-  var bad=sum(s.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='prestamo'&&!r.devuelto}).map(function(r){return r.monto}));
+  var bad=sum(s.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='prestamo'}).map(resta));
   var perDay=(verdeIn-(o.sinDeuda?0:bad))/span;
   var monthly=Math.max(0,perDay*30), meta=s.setup.metaMes||1, ratio=monthly/meta;
   var status=ratio>=1?'sol':ratio>=0.75?'nube':'lluvia';
@@ -500,7 +512,7 @@ function renderSobres(){
   S.cierres.forEach(function(c){mov.push({f:c.fecha,t:'Cierre de caja',sub:'Repartido en 3 sobres',m:'+'+Q(c.total),k:null})});
   S.retiros.forEach(function(r){
     if(r.tipo==='compra') mov.push({f:r.fecha,t:'Compras del negocio',sub:'Sobre verde',m:'-'+Q(r.monto),k:'verde'});
-    else if(r.tipo==='prestamo') mov.push({f:r.fecha,t:'Préstamo para la casa',sub:motivo(r.motivo).label+(r.devuelto?', devuelto el '+fmtDay(r.devuelto):', pendiente'),m:'-'+Q(r.monto),k:'verde'});
+    else if(r.tipo==='prestamo'){var rs=resta(r),pg=pagado(r);mov.push({f:r.fecha,t:'Préstamo para la casa',sub:motivo(r.motivo).label+(rs===0?', devuelto completo':pg>0?', faltan '+Q(rs):', pendiente'),m:'-'+Q(r.monto),k:'verde'});(r.pagos||[]).forEach(function(pp){mov.push({f:pp.fecha,t:'Devolución al sobre verde',sub:'Sale de su sueldo',m:'+'+Q(pp.monto),k:'verde'})})}
     else mov.push({f:r.fecha,t:motivo(r.motivo).label,sub:SOBRE[r.sobre].name,m:'-'+Q(r.monto),k:r.sobre});
   });
   mov.sort(function(a,b){return a.f<b.f?1:a.f>b.f?-1:0});
@@ -526,13 +538,13 @@ function renderPronostico(){
 function renderPuesto(){
   var n=S.cierres.length, i=rango(n), next=RANGOS[i+1], b=balances(S), sem=semanasCerradas(S);
   var perfectas=sem.filter(function(w){return w.r.cumplidas===3}).length;
-  var devolvio=S.retiros.some(function(r){return r.tipo==='prestamo'&&r.devuelto});
+  var devolvio=S.retiros.some(function(r){return r.tipo==='prestamo'&&r.devuelto&&resta(r)===0});
   var from=add(TODAY,-6);
   var verdeLimpio=!S.retiros.some(function(x){return x.fecha>=from&&x.tipo==='prestamo'})&&S.cierres.filter(function(c){return c.fecha>=from}).length>=5;
   var h='<section class="card rank">'+rankSVG(i)+'<p class="label">Rango '+(i+1)+' de 5</p><h2>'+RANGOS[i].n+'</h2><div class="lvl">'+RANGOS.map(function(l,k){return '<i class="'+(k<=i?'on':'')+'"></i>'}).join('')+'</div>';
   h+='<p class="note">'+(next?'Le faltan '+(next.min-n)+' cierres de caja para ser '+next.n+'.':'Llegó al rango más alto.')+'</p></section>';
   var pts=puntosMes(S);
-  h+='<section class="card premio"><div class="row"><h3>Premio del mes</h3><span class="pill">Próximamente</span></div><p class="big num">'+pts+' <small>puntos este mes</small></p><p class="note" style="margin-top:4px">Cada cierre de caja suma '+PTS_CIERRE+' puntos y cada meta semanal cumplida suma '+PTS_META+'. Los emprendedores con más puntos participarán por premios de aliados y patrocinadores.</p><p class="note">Se gana por constancia, no por cuánto dinero tenga. Antes de entregar un premio, un promotor hace un arqueo en persona.</p></section>';
+  h+='<section class="card premio"><div class="row"><h3>Premio del mes</h3><span class="pill">Próximamente</span></div><p class="big num">'+pts+' <small>puntos este mes</small></p><p class="note" style="margin-top:4px">Cada cierre de caja suma '+PTS_CIERRE+' puntos y cada meta semanal cumplida suma '+PTS_META+'. Los emprendedores con más puntos participarán por premios de aliados y patrocinadores.</p><p class="note">Se gana por constancia, no por cuánto dinero tenga. Al entregar el premio aplican algunas condiciones.</p></section>';
   var L=[
     ['Primer cierre','Cerró la caja por primera vez.',n>=1],
     ['Tres en fila','3 días seguidos con la caja cerrada.',(S.maxRacha||0)>=3],
@@ -621,12 +633,15 @@ function renderMov(){
 }
 function renderDevolver(){
   var p=pendientes(S), h=head('Devolví al sobre verde',0,0);
-  h+='<p>Toque Devolví cuando ya haya puesto el dinero de vuelta en el sobre verde. Se descuenta de su sobre amarillo.</p>';
+  h+='<p>Anote cuánto puso de vuelta en el sobre verde. Puede devolver una parte; lo que falte queda pendiente. Se descuenta de su sobre amarillo.</p>';
   if(!p.length) h+='<p class="note">No tiene préstamos pendientes.</p>';
-  p.forEach(function(r){var i=S.retiros.indexOf(r);h+='<section class="card loan"><div><b class="num">'+Q(r.monto)+'</b><small>'+fmtDay(r.fecha)+', '+motivo(r.motivo).label+'</small></div><button class="big-btn go small" data-devolver="'+i+'">Devolví</button></section>'});
+  p.forEach(function(r){var i=S.retiros.indexOf(r),rs=resta(r),pg=pagado(r);
+    h+='<section class="card loan-p"><div class="row"><b class="num">Falta '+Q(rs)+'</b><small>'+fmtDay(r.fecha)+', '+motivo(r.motivo).label+'</small></div>'+(pg>0?'<p class="note" style="margin:0">Prestó '+Q(r.monto)+' y ya devolvió '+Q(pg)+'.</p>':'')
+      +'<div class="dev-row"><div class="field"><label for="dev-'+i+'">¿Cuánto devolvió?</label><input id="dev-'+i+'" type="number" inputmode="numeric" min="1" max="'+rs+'" value="'+rs+'"></div><button class="big-btn go small" data-devolver="'+i+'">Devolví</button></div></section>'});
   if(p.length>1) h+='<button class="big-btn plain" id="dev-todo">Devolví todo ('+Q(deuda(S))+')</button>';
   openSheet(h,'d');
 }
+function pagar(r,amt){amt=Math.min(Math.round(amt),resta(r));if(amt<=0)return 0;r.pagos=r.pagos||[];r.pagos.push({fecha:TODAY,monto:amt});if(resta(r)===0)r.devuelto=TODAY;return amt}
 
 /* ---------- ajustes ---------- */
 function renderAjustes(nuevo){
@@ -661,7 +676,7 @@ document.addEventListener('click',function(e){
     var v=function(x){return document.getElementById(x).value}, nuevo=t.dataset.nuevo==='1';
     var st={negocio:v('a-negocio').trim()||'Mi negocio',sueldoSemana:Math.max(0,+v('a-sueldo')||0),pctReponer:Math.max(0,+v('a-rep')||0),pctColchon:Math.max(0,+v('a-col')||0),metaMes:Math.max(0,+v('a-meta')||0),alarma:v('a-alarma')||'19:00'};
     if(st.pctReponer+st.pctColchon>95){var er=document.getElementById('a-err');er.textContent='Compras más colchón no puede pasar de 95%: algo tiene que quedar para su sueldo.';er.hidden=false;return}
-    if(nuevo){S={v:3,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}else S.setup=st;
+    if(nuevo){S={v:4,demo:false,setup:st,cierres:[],retiros:[],maxRacha:0}}else S.setup=st;
     save();closeSheet();go('hoy');toast(nuevo?'Listo. Esta noche hace su primer cierre.':'Ajustes guardados');return;
   }
   /* cierre */
@@ -691,14 +706,16 @@ document.addEventListener('click',function(e){
   if(t.dataset.sobre){mov.sobre=t.dataset.sobre;renderMov();return}
   if(id==='m-anotar'){var amt=Math.round(movTotal(mov));if(amt<=0)return;var msg;
     if(mov.kind==='compra'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'compra',motivo:null,sobre:'verde'});save();closeSheet();msg='Compra anotada. Al sobre verde le quedan '+Q(balances(S).verde)+'.'}
-    else if(mov.sobre==='verde'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'prestamo',motivo:mov.motivo,sobre:'verde',devuelto:null});save();closeSheet();msg='Préstamo anotado. Cuando lo reponga, toque Devolví.'}
+    else if(mov.sobre==='verde'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'prestamo',motivo:mov.motivo,sobre:'verde',devuelto:null,pagos:[]});save();closeSheet();msg='Préstamo anotado. Cuando lo reponga, toque Devolví.'}
     else {var so=mov.sobre;S.retiros.push({fecha:TODAY,monto:amt,tipo:'casa',motivo:mov.motivo,sobre:so});save();closeSheet();msg='Anotado. Al sobre '+so+' le quedan '+Q(balances(S)[so])+'.'}
     toast(msg);return}
   /* devolver */
   if(id==='btn-devolver'){renderDevolver();return}
-  if(t.dataset.devolver){var k=+t.dataset.devolver;if(S.retiros[k]){S.retiros[k].devuelto=TODAY;save()}
-    if(deuda(S)>0){renderDevolver();toast('Devuelto. Todavía debe '+Q(deuda(S))+'.')}else{closeSheet();toast('Devuelto. Su pronóstico quedó limpio.')}return}
-  if(id==='dev-todo'){pendientes(S).forEach(function(r){r.devuelto=TODAY});save();closeSheet();toast('Devuelto. Su pronóstico quedó limpio.');return}
+  if(t.dataset.devolver){var k=+t.dataset.devolver,r0=S.retiros[k],inp=document.getElementById('dev-'+k);if(!r0)return;var val=+(inp&&inp.value)||0;
+    if(val<=0){toast('Escriba cuánto devolvió.');return}
+    var pagadoAhora=pagar(r0,val);save();
+    if(deuda(S)>0){renderDevolver();toast('Devolvió '+Q(pagadoAhora)+'. Todavía debe '+Q(deuda(S))+'.')}else{closeSheet();toast('Devolvió '+Q(pagadoAhora)+'. Su pronóstico quedó limpio.')}return}
+  if(id==='dev-todo'){pendientes(S).forEach(function(r){pagar(r,resta(r))});save();closeSheet();toast('Devuelto. Su pronóstico quedó limpio.');return}
 });
 document.addEventListener('input',function(e){
   var t=e.target;
