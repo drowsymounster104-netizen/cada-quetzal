@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cada Quetzal en su Lugar</title>
 <meta name="description" content="Una forma sencilla de separar el dinero del negocio y el de la casa, en tres sobres.">
-<meta name="theme-color" content="#F3EFE6">
+<meta name="theme-color" content="#F7F8F8">
 <script>try{if(localStorage.getItem('cada-quetzal-tema')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
 <meta property="og:title" content="Cada Quetzal en su Lugar">
 <meta property="og:description" content="El dinero del negocio y el de la casa, cada uno en su sobre.">
@@ -26,26 +26,26 @@ img{max-width:100%}
 [hidden]{display:none!important}
 /* Layout: una columna tipo teléfono. Fondo claro por defecto y oscuro a elección; el color vive en los sobres (verde, amarillo, naranja) para que se reconozcan al instante */
 :root{
-  --bg:#F3EFE6; --surface:#FBF9F4; --surface-2:#ECE7DC; --line:#E0D9CB; --ink:#1E2721; --muted:#5D665F; --faint:#8C928B;
-  --paper:#1F3A2E; --on-paper:#FBF9F4; --paper-muted:#AFC2B6;
-  --verde:#3A9A66; --verde-soft:#E1EEE4; --amarillo:#E3AE36; --amarillo-soft:#F7ECCF; --naranja:#D4703F; --naranja-soft:#F5E1D6;
-  --on-color:#14201A; --on-amarillo:#14201A; --brand:#1F3A2E; --on-brand:#FBF9F4;
-  --sol:#E3AE36; --nube:#B9BDB3; --lluvia:#5E83A6; --alerta:#B3261E;
-  --nav-bg:rgba(251,249,244,.96); --premio-bg:linear-gradient(140deg,#FBF9F4,#EFEADF); --shadow:0 1px 2px rgba(30,39,33,.06);
-  --r0:#D9D3C4; --r1:#B8B09D; --r2:#8E8670; --r3:#5C5A48; --r4:#1F3A2E;
+  --bg:#F7F8F8; --surface:#FFFFFF; --surface-2:#F1F3F4; --line:#E4E7EA; --ink:#14171A; --muted:#5B6168; --faint:#8A9097;
+  --paper:#007A55; --on-paper:#FFFFFF; --paper-muted:#D3F0E3;
+  --verde:#12B76A; --verde-soft:#E3F8EE; --amarillo:#FFC21A; --amarillo-soft:#FFF5D6; --naranja:#FF6B2C; --naranja-soft:#FFEADF;
+  --on-color:#0D1612; --on-amarillo:#0D1612; --brand:#007A55; --on-brand:#FFFFFF;
+  --sol:#FFC21A; --nube:#C3C8CD; --lluvia:#4C8BD6; --alerta:#D92D20;
+  --nav-bg:rgba(255,255,255,.97); --premio-bg:linear-gradient(140deg,#FFFFFF,#EFF8F3); --shadow:0 1px 3px rgba(16,24,40,.06),0 1px 2px rgba(16,24,40,.04);
+  --r0:#D7DCDA; --r1:#AEB8B3; --r2:#7E8C86; --r3:#4A5A53; --r4:#007A55;
   --b200:#1E7F86; --b100:#8A5A2B; --b50:#C2740E; --b20:#2F5FA8; --b10:#B23A3A; --b5:#6B4AA0; --b1:#C9A227;
   --display:'Lexend','Segoe UI',Arial,sans-serif; --body:'Lexend','Segoe UI',Arial,sans-serif;
   --r-lg:26px; --r-md:16px;
   color-scheme:light;
 }
 :root[data-theme="dark"]{
-  --bg:#121813; --surface:#1A221C; --surface-2:#232D26; --line:#2D3830; --ink:#EEF0E8; --muted:#A3ACA3; --faint:#717A72;
-  --paper:#EEF0E8; --on-paper:#142019; --paper-muted:#5A665E;
-  --verde:#3FA66E; --verde-soft:#16271C; --amarillo:#E8B53E; --amarillo-soft:#2B2412; --naranja:#DB7444; --naranja-soft:#301B12;
-  --brand:#EEF0E8; --on-brand:#142019;
-  --sol:#EEF0E8; --nube:#8A928B; --lluvia:#BFCAD3; --alerta:#FF8A80;
-  --nav-bg:rgba(18,24,19,.94); --premio-bg:linear-gradient(140deg,#232D26,#161D18); --shadow:none;
-  --r0:#44504A; --r1:#6E7A72; --r2:#9AA59D; --r3:#C9D1CB; --r4:#EEF0E8;
+  --bg:#0F1214; --surface:#171B1E; --surface-2:#20262A; --line:#2A3136; --ink:#F2F4F5; --muted:#A2AAB0; --faint:#6E777D;
+  --paper:#19C37D; --on-paper:#06140D; --paper-muted:#0B3D27;
+  --verde:#22C57A; --verde-soft:#0F2A1E; --amarillo:#FFC933; --amarillo-soft:#2E2610; --naranja:#FF7A3D; --naranja-soft:#33190F;
+  --brand:#19C37D; --on-brand:#06140D;
+  --sol:#FFC933; --nube:#8C959B; --lluvia:#9CC3F0; --alerta:#FF8A80;
+  --nav-bg:rgba(15,18,20,.95); --premio-bg:linear-gradient(140deg,#20262A,#15191C); --shadow:none;
+  --r0:#3A4247; --r1:#5E686E; --r2:#8D979D; --r3:#C3CACE; --r4:#19C37D;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -562,7 +562,7 @@ function temaBtn(){var b=document.getElementById('btn-tema');if(!b)return;var d=
   b.setAttribute('aria-label',d?'Cambiar a fondo claro':'Cambiar a fondo oscuro')}
 function setTema(t){if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');
   try{localStorage.setItem(TEMA_KEY,t)}catch(e){}
-  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#121813':'#F3EFE6');temaBtn()}
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0F1214':'#F7F8F8');temaBtn()}
 
 /* ---------- vistas ---------- */
 var ui={tab:'hoy'};
