@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cada Quetzal en su Lugar</title>
-<meta name="description" content="Separe el dinero de su negocio y el de su casa en tres sobres. Cierre su caja en un minuto y sepa si le alcanzará para sus compras a fin de mes.">
-<meta name="theme-color" content="#F5F4F0">
+<meta name="description" content="Una forma sencilla de separar el dinero del negocio y el de la casa, en tres sobres.">
+<meta name="theme-color" content="#F3EFE6">
 <script>try{if(localStorage.getItem('cada-quetzal-tema')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
 <meta property="og:title" content="Cada Quetzal en su Lugar">
 <meta property="og:description" content="El dinero del negocio y el de la casa, cada uno en su sobre.">
@@ -25,26 +25,26 @@ img{max-width:100%}
 [hidden]{display:none!important}
 /* Layout: una columna tipo teléfono. Fondo claro por defecto y oscuro a elección; el color vive en los sobres (verde, amarillo, naranja) para que se reconozcan al instante */
 :root{
-  --bg:#F5F4F0; --surface:#FFFFFF; --surface-2:#EFEEE9; --line:#E3E1DA; --ink:#18181B; --muted:#5C5C63; --faint:#8D8D94;
-  --paper:#18181B; --on-paper:#FFFFFF; --paper-muted:#B9B9C0;
-  --verde:#1E9A62; --verde-soft:#E2F3EA; --amarillo:#F2B705; --amarillo-soft:#FCF1CF; --naranja:#EE5F2A; --naranja-soft:#FCE5DA;
-  --on-color:#0E0E10; --on-amarillo:#0E0E10; --brand:#18181B; --on-brand:#FFFFFF;
-  --sol:#F2B705; --nube:#B4B4BA; --lluvia:#5F86B5; --alerta:#C62828;
-  --nav-bg:rgba(255,255,255,.96); --premio-bg:linear-gradient(140deg,#FFFFFF,#F1F0EA); --shadow:0 1px 2px rgba(24,24,27,.05);
-  --r0:#D5D4CE; --r1:#B3B2AC; --r2:#8A8984; --r3:#5A5955; --r4:#18181B;
+  --bg:#F3EFE6; --surface:#FBF9F4; --surface-2:#ECE7DC; --line:#E0D9CB; --ink:#1E2721; --muted:#5D665F; --faint:#8C928B;
+  --paper:#1F3A2E; --on-paper:#FBF9F4; --paper-muted:#AFC2B6;
+  --verde:#3A9A66; --verde-soft:#E1EEE4; --amarillo:#E3AE36; --amarillo-soft:#F7ECCF; --naranja:#D4703F; --naranja-soft:#F5E1D6;
+  --on-color:#14201A; --on-amarillo:#14201A; --brand:#1F3A2E; --on-brand:#FBF9F4;
+  --sol:#E3AE36; --nube:#B9BDB3; --lluvia:#5E83A6; --alerta:#B3261E;
+  --nav-bg:rgba(251,249,244,.96); --premio-bg:linear-gradient(140deg,#FBF9F4,#EFEADF); --shadow:0 1px 2px rgba(30,39,33,.06);
+  --r0:#D9D3C4; --r1:#B8B09D; --r2:#8E8670; --r3:#5C5A48; --r4:#1F3A2E;
   --b200:#1E7F86; --b100:#8A5A2B; --b50:#C2740E; --b20:#2F5FA8; --b10:#B23A3A; --b5:#6B4AA0; --b1:#C9A227;
   --display:'Plus Jakarta Sans','Segoe UI',Arial,sans-serif; --body:'Plus Jakarta Sans','Segoe UI',Arial,sans-serif;
   --r-lg:26px; --r-md:16px;
   color-scheme:light;
 }
 :root[data-theme="dark"]{
-  --bg:#0E0E10; --surface:#17171A; --surface-2:#212125; --line:#2B2B30; --ink:#F3F2EF; --muted:#A0A0A7; --faint:#6F6F76;
-  --paper:#F3F2EF; --on-paper:#121214; --paper-muted:#55555B;
-  --verde:#22A06B; --verde-soft:#132820; --amarillo:#F2B705; --amarillo-soft:#2C2510; --naranja:#F0642E; --naranja-soft:#33190F;
-  --brand:#F3F2EF; --on-brand:#121214;
-  --sol:#F3F2EF; --nube:#8B8B92; --lluvia:#BFC6D1; --alerta:#FF8A80;
-  --nav-bg:rgba(14,14,16,.94); --premio-bg:linear-gradient(140deg,#24242A,#151518); --shadow:none;
-  --r0:#4A4A50; --r1:#77777E; --r2:#A4A4AB; --r3:#D3D3D7; --r4:#F3F2EF;
+  --bg:#121813; --surface:#1A221C; --surface-2:#232D26; --line:#2D3830; --ink:#EEF0E8; --muted:#A3ACA3; --faint:#717A72;
+  --paper:#EEF0E8; --on-paper:#142019; --paper-muted:#5A665E;
+  --verde:#3FA66E; --verde-soft:#16271C; --amarillo:#E8B53E; --amarillo-soft:#2B2412; --naranja:#DB7444; --naranja-soft:#301B12;
+  --brand:#EEF0E8; --on-brand:#142019;
+  --sol:#EEF0E8; --nube:#8A928B; --lluvia:#BFCAD3; --alerta:#FF8A80;
+  --nav-bg:rgba(18,24,19,.94); --premio-bg:linear-gradient(140deg,#232D26,#161D18); --shadow:none;
+  --r0:#44504A; --r1:#6E7A72; --r2:#9AA59D; --r3:#C9D1CB; --r4:#EEF0E8;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -295,7 +295,7 @@ details.more .field{margin-bottom:14px}
 @media (min-width:980px){
   .side{display:flex;flex-direction:column;gap:24px;position:fixed;top:calc(env(safe-area-inset-top,0px) + 64px);left:calc(50% - 520px);width:460px}
   .side .logo{width:64px;height:64px}
-  .side .kicker{font-size:18px;font-weight:700;color:var(--muted)}
+  .side .slogan{font-size:22px;font-weight:700;color:var(--ink);line-height:1.35;letter-spacing:-.01em}
   .side h1{font-size:68px;line-height:.98;letter-spacing:-.04em}
   .side p{font-size:17px;color:var(--muted);line-height:1.6}
   .side ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
@@ -314,16 +314,14 @@ details.more .field{margin-bottom:14px}
 
 <aside class="side" aria-label="Acerca de Cada Quetzal en su Lugar">
   <div class="logo"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="5" y="21" width="34" height="24" rx="5" transform="rotate(-12 22 33)" style="fill:var(--verde)"/><rect x="15" y="17" width="34" height="24" rx="5" style="fill:var(--amarillo)"/><rect x="25" y="22" width="34" height="24" rx="5" transform="rotate(12 42 34)" style="fill:var(--naranja)"/><path d="M27 25.5l15 9.5 15-9.5" transform="rotate(12 42 34)" style="fill:none;stroke:#FBFCFA;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/></svg></div>
-  <p class="kicker">Para dueños de negocios pequeños</p>
   <h1>Cada quetzal en su lugar.</h1>
-  <p>Una forma sencilla de separar el dinero del negocio y el de la casa. Cierre su caja en un minuto, sepa en qué sobre va cada billete y vea si le alcanzará para sus compras a fin de mes.</p>
+  <p>Una forma sencilla de separar el dinero del negocio y el de la casa.</p>
+  <p class="slogan">Su negocio crece, su casa está tranquila.</p>
   <ul>
     <li><i style="background:var(--verde)"></i>Sobre verde: vuelve al negocio</li>
     <li><i style="background:var(--amarillo)"></i>Sobre amarillo: para usted</li>
     <li><i style="background:var(--naranja)"></i>Sobre naranja: préstamos y emergencias</li>
   </ul>
-  <p>Los sobres pueden ser de papel o vivir solo en la app, por si anda en movimiento. Ábrala desde su celular y agréguela a la pantalla de inicio.</p>
-  <p class="credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>
 </aside>
 <div class="shell">
   <header class="top">
@@ -361,7 +359,7 @@ var MOTIVOS=[
   {id:'emergencia',label:'Emergencia',sobre:'naranja'},
   {id:'otro',label:'Otro gasto',sobre:'amarillo'}
 ];
-var SOBRE={verde:{name:'Sobre verde',rule:'Vuelve al negocio: compras, mercadería, insumos y gastos como gasolina. No se toca para la casa.',cls:'s-v'},
+var SOBRE={verde:{name:'Sobre verde',rule:'Vuelve al negocio: mercadería, proveedores, gasolina y sueldos de sus trabajadores. No se toca para la casa.',cls:'s-v'},
   amarillo:{name:'Sobre amarillo',rule:'Para usted: lo que se lleva para su casa.',cls:'s-a'},
   naranja:{name:'Sobre naranja',rule:'Apartado: para pagar préstamos y cubrir emergencias.',cls:'s-n'}};
 var RANGOS=[{n:'Emprendedor Semilla',min:0},{n:'Emprendedor en Marcha',min:3},{n:'Emprendedor Constante',min:9},{n:'Emprendedor Ordenado',min:20},{n:'Emprendedor Maestro',min:45}];
@@ -519,7 +517,7 @@ function puntosMes(s){
   var pm=sum(semanasCerradas(s).filter(function(w){return add(w.ini,6).slice(0,7)===mes}).map(function(w){return w.r.cumplidas*PTS_META}));
   return pc+pm;
 }
-var WX={sol:{t:'Despejado',s:'Le alcanza para sus compras.'},nube:{t:'Nublado',s:'Va justo. Cuide el sobre verde.'},lluvia:{t:'Lluvia',s:'Así no le va a alcanzar para sus compras.'}};
+var WX={sol:{t:'Despejado',s:'Le alcanza para los gastos del negocio.'},nube:{t:'Nublado',s:'Va justo. Cuide el sobre verde.'},lluvia:{t:'Lluvia',s:'Así no le va a alcanzar para los gastos del negocio.'}};
 
 /* ---------- dibujos ---------- */
 function wxSVG(st){
@@ -543,8 +541,8 @@ function chipsHTML(list){if(!list||!list.length)return '<span class="note">Sin b
 /* ---------- ayudas ---------- */
 var HELP={
   sobres:['Sus tres sobres','Su dinero se reparte en tres sobres. El verde vuelve al negocio para comprar mercadería. El amarillo es para usted y su casa. El naranja es un apartado para pagar su préstamo y para emergencias.'],
-  pron:['El pronóstico','La app compara lo que junta en el sobre verde con lo que gasta en compras del negocio. Sol: le alcanza. Nube: va justo. Lluvia: si sigue así, no le va a alcanzar.'],
-  mes:['Lo que le queda este mes','Es lo que vendió en el mes, menos las compras del negocio, el préstamo y el ahorro. Eso es lo que de verdad le queda a usted.'],
+  pron:['El pronóstico','La app compara lo que junta en el sobre verde con lo que gasta en el negocio: mercadería, proveedores y sueldos. Sol: le alcanza. Nube: va justo. Lluvia: si sigue así, no le va a alcanzar.'],
+  mes:['Lo que le queda este mes','Es lo que vendió en el mes, menos los gastos del negocio, el préstamo y el ahorro. Eso es lo que de verdad le queda a usted.'],
   casa:['Lo que sacó para la casa','Su parte de la semana es lo que cayó en el sobre amarillo. Si saca más que eso, está usando dinero del negocio.'],
   hoyres:['Resultado de hoy','Lo que entró hoy menos lo que gastó en el negocio. Esa es la ganancia del día.'],
   reto:['Reto de 7 días','Cierre la caja 7 días seguidos. Cada cuadrito marcado es un día que separó bien su dinero.'],
@@ -563,7 +561,7 @@ function temaBtn(){var b=document.getElementById('btn-tema');if(!b)return;var d=
   b.setAttribute('aria-label',d?'Cambiar a fondo claro':'Cambiar a fondo oscuro')}
 function setTema(t){if(t==='dark')document.documentElement.setAttribute('data-theme','dark');else document.documentElement.removeAttribute('data-theme');
   try{localStorage.setItem(TEMA_KEY,t)}catch(e){}
-  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#0E0E10':'#F5F4F0');temaBtn()}
+  var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='dark'?'#121813':'#F3EFE6');temaBtn()}
 
 /* ---------- vistas ---------- */
 var ui={tab:'hoy'};
@@ -591,7 +589,6 @@ function renderHoy(){
   h+='<section class="card"><div class="row c"><h3>Reto de 7 días</h3>'+helpBtn('reto')+'</div><div class="week">';
   for(var i=6;i>=0;i--){var d=add(TODAY,-i);h+='<div class="day'+(closedOn(S,d)?' on':'')+(i===0?' today':'')+'">'+DIAS[parse(d).getDay()]+'<i></i></div>'}
   h+='</div><p class="note">'+(r>=7?'Reto cumplido. Siga con la racha.':r>0?'Lleva '+r+(r===1?' día':' días')+' seguidos cerrando la caja.':'Cierre hoy para empezar su racha.')+'</p></section>';
-  h+='<p class="credit tabs-credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>';
   return h;
 }
 function renderSobres(){
@@ -612,11 +609,11 @@ function renderSobres(){
   var from=add(TODAY,-29), cs=S.cierres.filter(function(c){return c.fecha>=from});
   var compras=sum(S.retiros.filter(function(r){return r.fecha>=from&&r.tipo==='compra'}).map(function(r){return r.monto}));
   var ven=sum(cs.map(function(c){return c.total})), gan=ven-compras;
-  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(ven)+'</b></div><div><span class="label">Pagó en compras</span><b>'+Q(compras)+'</b></div><div><span class="label">Ganancia</span><b>'+Q(gan)+' <small>'+pct(gan,ven)+'%</small></b></div><div><span class="label">Para usted</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
+  h+='<section class="card"><h3>Resumen de 30 días</h3><div class="res num"><div><span class="label">Vendió</span><b>'+Q(ven)+'</b></div><div><span class="label">Gastos del negocio</span><b>'+Q(compras)+'</b></div><div><span class="label">Ganancia</span><b>'+Q(gan)+' <small>'+pct(gan,ven)+'%</small></b></div><div><span class="label">Para usted</span><b>'+Q(sum(cs.map(function(c){return c.amarillo})))+'</b></div></div><p class="note">Al empezar otro mes no se borra nada: sus sobres siguen con lo que tienen. Este historial también sirve para demostrar sus ingresos si algún día pide un crédito.</p></section>';
   var mov=[];
   S.cierres.forEach(function(c){mov.push({f:c.fecha,t:'Cierre de caja',sub:'Repartido en 3 sobres',m:'+'+Q(c.total),k:null})});
   S.retiros.forEach(function(r){
-    if(r.tipo==='compra') mov.push({f:r.fecha,t:'Compras del negocio',sub:'Sobre verde',m:'-'+Q(r.monto),k:'verde'});
+    if(r.tipo==='compra') mov.push({f:r.fecha,t:'Gastos del negocio',sub:'Sobre verde',m:'-'+Q(r.monto),k:'verde'});
     else if(r.tipo==='prestamo'){var rs=resta(r),pg=pagado(r);mov.push({f:r.fecha,t:'Préstamo para la casa',sub:motivo(r.motivo).label+(rs===0?', devuelto completo':pg>0?', faltan '+Q(rs):', pendiente'),m:'-'+Q(r.monto),k:'verde'});(r.pagos||[]).forEach(function(pp){mov.push({f:pp.fecha,t:'Devolución al sobre verde',sub:'Sale de su parte',m:'+'+Q(pp.monto),k:'verde'})})}
     else mov.push({f:r.fecha,t:motivo(r.motivo).label,sub:SOBRE[r.sobre].name,m:'-'+Q(r.monto),k:r.sobre});
   });
@@ -628,16 +625,16 @@ function lane(label,val,max,color){return '<div class="lane num"><span>'+label+'
 function renderPronostico(){var bk='<button class="back" data-go="hoy">← Volver</button>';return bk+renderPron()}
 function renderPron(){
   var f=forecast(S,{});
-  if(!f) return '<section class="card"><h3>Todavía no hay pronóstico</h3><p class="note">Cierre la caja unos días y aquí verá si le alcanza para sus compras a fin de mes.</p></section>';
-  if(f.sinCompras) return '<section class="card"><h3>Falta un dato</h3><p class="note">Anote sus compras del negocio con el botón Pagué compras. Con unos días de datos, la app calcula sola cuánto gasta al mes y si le va a alcanzar.</p></section>';
+  if(!f) return '<section class="card"><h3>Todavía no hay pronóstico</h3><p class="note">Cierre la caja unos días y aquí verá si le alcanza para los gastos del negocio a fin de mes.</p></section>';
+  if(f.sinCompras) return '<section class="card"><h3>Falta un dato</h3><p class="note">Anote los gastos del negocio con el botón Saqué dinero. Con unos días de datos, la app calcula sola cuánto gasta al mes y si le va a alcanzar.</p></section>';
   var dim=new Date(parse(TODAY).getFullYear(),parse(TODAY).getMonth()+1,0).getDate(), left=dim-parse(TODAY).getDate();
   var max=Math.max(f.monthly,f.meta);
-  var h='<section class="card wx">'+wxSVG(f.status)+'<p class="label">Su dinero a fin de mes</p><h2>'+WX[f.status].t+'</h2><p class="sent">Al ritmo de los últimos '+f.span+' días, en un mes juntará <b class="num">'+Q(f.monthly)+'</b> en el sobre verde. Según lo que ha comprado, al mes gasta unos <b class="num">'+Q(f.meta)+'</b> en el negocio.</p>';
+  var h='<section class="card wx">'+wxSVG(f.status)+'<p class="label">Su dinero a fin de mes</p><h2>'+WX[f.status].t+'</h2><p class="sent">Al ritmo de los últimos '+f.span+' días, en un mes juntará <b class="num">'+Q(f.monthly)+'</b> en el sobre verde. Según lo que ha anotado, al mes gasta unos <b class="num">'+Q(f.meta)+'</b> en el negocio.</p>';
   h+='<div class="cmp">'+lane('Va a juntar',f.monthly,max,'var(--paper)')+lane('Gasta',f.meta,max,'var(--faint)')+'</div>';
   if(f.bad>0) h+='<div class="debt-inline"><p class="note bad" style="margin:0">Lo que baja su pronóstico: debe '+Q(f.bad)+' al sobre verde.</p><button class="big-btn go small" id="btn-devolver">Devolví</button></div>';
   h+='<p class="note" style="text-align:left">Faltan '+left+' días para fin de mes. Al empezar otro mes no se borra nada.</p></section>';
   h+='<section class="card"><h3>Cómo leer el pronóstico</h3><div class="legend">'
-    +'<div>'+wxSVG('sol')+'<span><b>Despejado</b>Le alcanza para sus compras.</span></div>'
+    +'<div>'+wxSVG('sol')+'<span><b>Despejado</b>Le alcanza para los gastos del negocio.</span></div>'
     +'<div>'+wxSVG('nube')+'<span><b>Nublado</b>Va justo. Cuide el sobre verde.</span></div>'
     +'<div>'+wxSVG('lluvia')+'<span><b>Lluvia</b>No le va a alcanzar si sigue así.</span></div></div></section>';
   return h;
@@ -721,7 +718,7 @@ function movTotal(M){return M.typing?(+M.typed||0):countsTotal(M.counts)}
 function renderSaque(){
   var pk=function(id,cls,t,s){return '<button class="pick" id="'+id+'"><i class="'+cls+'"></i><span><b>'+t+'</b><small>'+s+'</small></span></button>'};
   openSheet(head('Saqué dinero',0,0)+'<p>¿Para qué fue?</p><div class="picks">'
-    +pk('btn-compra','s-v','Compras del negocio','Mercadería, proveedores o gasolina. Sale del sobre verde.')
+    +pk('btn-compra','s-v','Gastos del negocio','Mercadería, proveedores, gasolina o sueldos de trabajadores. Sale del sobre verde.')
     +pk('btn-casa','s-a','Para la casa','Comida, luz, agua o estudios. Sale de su parte, el sobre amarillo.')
     +pk('btn-emerg','s-n','Préstamo o emergencia','La cuota del préstamo, salud o una emergencia. Sale del apartado, el sobre naranja.')
     +'</div>','s');
@@ -729,9 +726,9 @@ function renderSaque(){
 function renderMov(){
   var M=mov, t=movTotal(M), b=balances(S), h='';
   if(M.kind==='compra'){
-    h=head('Pagué compras del negocio',0,0)+'<p>Pagos a proveedores, mercadería o insumos. Sale del sobre verde: para eso está.</p>'+amountBlock(M);
+    h=head('Gastos del negocio',0,0)+'<p>Mercadería, proveedores, gasolina o sueldos de sus trabajadores. Sale del sobre verde: para eso está.</p>'+amountBlock(M);
     if(t>b.verde) h+='<div class="warn"><b>El sobre verde tiene '+Q(b.verde)+'</b>Puede anotarlo igual. Si pagó con otro dinero, recuerde reponerlo.</div>';
-    h+='<button class="big-btn go" id="m-anotar"'+(t>0?'':' disabled')+'>Anotar compra</button><p class="note" style="text-align:center">El sobre verde tiene '+Q(b.verde)+'.</p>';
+    h+='<button class="big-btn go" id="m-anotar"'+(t>0?'':' disabled')+'>Anotar gasto</button><p class="note" style="text-align:center">El sobre verde tiene '+Q(b.verde)+'.</p>';
   } else if(M.emerg){
     h=head('Saqué del apartado',0,0)+'<p>Para pagar un préstamo o cubrir una emergencia. Sale del sobre naranja y no toca su parte ni el dinero del negocio.</p>'+amountBlock(M);
     h+='<div class="field"><span>¿Pago de préstamo o emergencia?</span><div class="choices">'+MOTIVOS.filter(function(x){return ['cuota','salud','emergencia'].indexOf(x.id)>-1}).map(function(x){return '<button class="choice" data-motivo="'+x.id+'" aria-pressed="'+(x.id===M.motivo)+'">'+x.label+'</button>'}).join('')+'</div></div>';
@@ -768,7 +765,7 @@ function pagar(r,amt){amt=Math.min(Math.round(amt),resta(r));if(amt<=0)return 0;
 var INTRO_KEY='cada-quetzal-intro', intro=0;
 var INTRO=[
   '<div class="logo"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="5" y="21" width="34" height="24" rx="5" transform="rotate(-12 22 33)" style="fill:var(--verde)"/><rect x="15" y="17" width="34" height="24" rx="5" style="fill:var(--amarillo)"/><rect x="25" y="22" width="34" height="24" rx="5" transform="rotate(12 42 34)" style="fill:var(--naranja)"/><path d="M27 25.5l15 9.5 15-9.5" transform="rotate(12 42 34)" style="fill:none;stroke:#FBFCFA;stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/></svg></div><h2>Bienvenido</h2><p>Esta app le ayuda a separar el dinero de su negocio y el de su casa, en tres sobres.</p>',
-  '<p>Primer sobre</p><div class="env s-v"><span>Sobre verde</span><b>Vuelve al negocio</b><p>Para comprar mercadería y pagar los gastos del negocio. No se toca para la casa.</p></div>',
+  '<p>Primer sobre</p><div class="env s-v"><span>Sobre verde</span><b>Vuelve al negocio</b><p>Para mercadería, proveedores, gasolina y los sueldos de sus trabajadores. No se toca para la casa.</p></div>',
   '<p>Segundo sobre</p><div class="env s-a"><span>Sobre amarillo</span><b>Para usted</b><p>Es su parte. De aquí sale lo de la casa: comida, luz, agua o estudios.</p></div>',
   '<p>Tercer sobre</p><div class="env s-n"><span>Sobre naranja</span><b>Apartado</b><p>Un poco cada día para pagar su préstamo y para las emergencias.</p></div>',
   '<h2>Cada noche, un minuto</h2><p>Toque los billetes que hay en la caja y la app le dice cuánto va a cada sobre. Así de fácil.</p>'
@@ -789,18 +786,18 @@ function renderAjustes(nuevo){
   var h=head(nuevo?'Su negocio':'Ajustes',0,0);
   if(nuevo) h+='<p>Solo tres datos y empieza. Se quedan guardados en este teléfono.</p>';
   h+='<div class="field"><label for="a-negocio">Nombre del negocio</label><input id="a-negocio" maxlength="40" placeholder="Ej. Tienda Don Julio" value="'+esc(s.negocio)+'"></div>';
-  h+='<div class="field"><label for="a-rep">De cada Q100 que vende, ¿cuántos vuelven al negocio?</label><div class="quick">'+[40,50,60,70].map(function(v){return '<button class="choice" data-rep="'+v+'" aria-pressed="'+(+s.pctReponer===v)+'">Q'+v+'</button>'}).join('')+'</div><input id="a-rep" type="number" inputmode="numeric" min="0" max="95" value="'+s.pctReponer+'"><small>Lo que necesita para volver a comprar mercadería. Si no sabe, empiece con Q50.</small></div>';
+  h+='<div class="field"><label for="a-rep">De cada Q100 que vende, ¿cuántos vuelven al negocio?</label><div class="quick">'+[40,50,60,70].map(function(v){return '<button class="choice" data-rep="'+v+'" aria-pressed="'+(+s.pctReponer===v)+'">Q'+v+'</button>'}).join('')+'</div><input id="a-rep" type="number" inputmode="numeric" min="0" max="95" value="'+s.pctReponer+'"><small>Para mercadería, proveedores y sueldos de sus trabajadores. Si no sabe, empiece con Q50.</small></div>';
   h+='<div class="field"><label for="a-cuota">¿Paga algún préstamo? ¿Cuánto al mes?</label><input id="a-cuota" type="number" inputmode="numeric" min="0" value="'+(s.cuotaMes||0)+'"><small>Ponga 0 si no tiene préstamos.</small></div>';
   h+='<div class="info n" id="a-usted">'+apartadoTxt(s.cuotaMes||0,s.ahorroDia||0)+'</div>';
   h+='<details class="more"><summary>Más opciones</summary>';
   h+='<div class="field"><label for="a-ahorro">¿Cuánto quiere ahorrar cada día?</label><input id="a-ahorro" type="number" inputmode="numeric" min="0" value="'+(s.ahorroDia||0)+'"><small>Va al sobre naranja. Puede empezar con poco, aunque sean Q5.</small></div>';
-  h+='<div class="field"><label for="a-meta-u">¿Cuánto le gustaría que le quede para usted al mes?</label><input id="a-meta-u" type="number" inputmode="numeric" min="0" value="'+(s.metaUsted||0)+'"><small>Después de compras, préstamo y ahorro. Ponga 0 si no quiere meta.</small></div>';
+  h+='<div class="field"><label for="a-meta-u">¿Cuánto le gustaría que le quede para usted al mes?</label><input id="a-meta-u" type="number" inputmode="numeric" min="0" value="'+(s.metaUsted||0)+'"><small>Después de los gastos del negocio, el préstamo y el ahorro. Ponga 0 si no quiere meta.</small></div>';
   h+='<div class="field"><label for="a-alarma">Hora del recordatorio de cierre</label><input id="a-alarma" type="time" value="'+esc(s.alarma)+'"></div></details>';
   h+='<p class="note bad" id="a-err" hidden></p><button class="big-btn go" id="a-guardar" data-nuevo="'+(nuevo?1:0)+'">'+(nuevo?'Empezar':'Guardar')+'</button>';
   if(!nuevo){
     h+='<section class="card"><h3>Fondo de la pantalla</h3><div class="seg" style="margin-top:12px"><button data-tema="light" aria-pressed="'+(tema()==='light')+'" style="background:#FFFFFF;color:#18181B;border-color:'+(tema()==='light'?'var(--ink)':'#E3E1DA')+'">Claro</button><button data-tema="dark" aria-pressed="'+(tema()==='dark')+'" style="background:#17171A;color:#F3F2EF;border-color:'+(tema()==='dark'?'var(--ink)':'#2B2B30')+'">Oscuro</button></div></section>';
     h+='<button class="big-btn plain" id="a-intro" style="margin:0">Ver cómo funciona</button>';
-    h+='<section class="card"><h3>Datos</h3><p class="note">Puede volver al negocio de ejemplo o empezar con su propio negocio desde cero.</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="big-btn plain" style="margin:0;font-size:16px" id="a-demo">Ver el negocio de ejemplo</button><button class="big-btn plain" style="margin:0;font-size:16px" id="a-nuevo">Empezar con mi negocio</button></div></section><section class="card install"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v8M8.5 11.5L12 15l3.5-3.5"/></svg><div><h3>Úsela como una app</h3><p class="note">En el navegador del celular abra el menú y elija Agregar a pantalla de inicio. Funciona aunque se vaya la señal.</p></div></section><p class="credit">Proyecto de estudiantes de Contaduría Pública y Auditoría, Universidad Da Vinci de Guatemala, Huehuetenango.</p>';
+    h+='<section class="card"><h3>Datos</h3><p class="note">Puede volver al negocio de ejemplo o empezar con su propio negocio desde cero.</p><div style="display:flex;flex-direction:column;gap:8px;margin-top:12px"><button class="big-btn plain" style="margin:0;font-size:16px" id="a-demo">Ver el negocio de ejemplo</button><button class="big-btn plain" style="margin:0;font-size:16px" id="a-nuevo">Empezar con mi negocio</button></div></section><section class="card install"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M12 7v8M8.5 11.5L12 15l3.5-3.5"/></svg><div><h3>Úsela como una app</h3><p class="note">En el navegador del celular abra el menú y elija Agregar a pantalla de inicio. Funciona aunque se vaya la señal.</p></div></section>';
   }
   openSheet(h,'a');
 }
@@ -862,7 +859,7 @@ document.addEventListener('click',function(e){
   if(t.dataset.motivo){mov.motivo=t.dataset.motivo;renderMov();return}
   if(t.dataset.sobre){mov.sobre=t.dataset.sobre;if(t.dataset.sobre==='verde')mov.emerg=false;renderMov();return}
   if(id==='m-anotar'){var amt=Math.round(movTotal(mov));if(amt<=0)return;var msg;
-    if(mov.kind==='compra'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'compra',motivo:null,sobre:'verde'});save();closeSheet();msg='Compra anotada. Al sobre verde le quedan '+Q(balances(S).verde)+'.'}
+    if(mov.kind==='compra'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'compra',motivo:null,sobre:'verde'});save();closeSheet();msg='Gasto anotado. Al sobre verde le quedan '+Q(balances(S).verde)+'.'}
     else if(mov.sobre==='verde'){S.retiros.push({fecha:TODAY,monto:amt,tipo:'prestamo',motivo:mov.motivo,sobre:'verde',devuelto:null,pagos:[]});save();closeSheet();msg='Préstamo anotado. Cuando lo reponga, toque Devolví.'}
     else {var so=mov.sobre;S.retiros.push({fecha:TODAY,monto:amt,tipo:'casa',motivo:mov.motivo,sobre:so});save();closeSheet();msg=so==='naranja'?'Anotado. A su apartado le quedan '+Q(balances(S).naranja)+'.':'Anotado. A su parte le quedan '+Q(balances(S)[so])+'.'}
     toast(msg);return}
